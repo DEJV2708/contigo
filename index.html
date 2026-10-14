@@ -193,6 +193,8 @@ mark{background:var(--sun-soft);color:inherit;border-radius:3px}
 .status.err{background:var(--warn-soft);color:var(--warn)}
 select.in{appearance:auto}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:.6rem 1.1rem;border-radius:99px;font-weight:700;z-index:30;max-width:calc(100% - 32px);text-align:center}
+.code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:1.25rem;font-weight:700;letter-spacing:.08em;user-select:all;text-align:center;background:var(--surface2);border-radius:12px;padding:.6rem;overflow-wrap:anywhere}
+#qr img,#qr canvas{background:#fff;padding:8px;border-radius:10px}
 .banner{margin:0 16px;border-radius:14px;padding:.6rem .9rem;background:var(--sun-soft);color:var(--fg);font-size:.9rem;display:flex;gap:.6rem;align-items:center}
 .banner button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:.4rem .8rem;font-weight:700;margin-left:auto}
 </style>
@@ -328,13 +330,14 @@ select.in{appearance:auto}
     <div><span class="l">Velocidad de la voz</span><div class="seg" id="rateSeg"><button data-r="0.8">Lenta</button><button data-r="0.95">Normal</button><button data-r="1.1">Rápida</button></div></div>
     <label class="toggle" for="cfgBuscar"><span>Buscar en internet cuando haga falta (médicos, noticias, direcciones)</span><input type="checkbox" id="cfgBuscar"></label>
     <label class="toggle" for="cfgAuto"><span>Mandar solo lo que dicto con el micrófono</span><input type="checkbox" id="cfgAuto"></label>
+    <div class="card" id="syncCard" style="display:flex;flex-direction:column;gap:.5rem"></div>
     <div class="card" style="display:flex;flex-direction:column;gap:.5rem">
       <span class="l">Copia de seguridad</span>
-      <div class="note">Todo se guarda en este teléfono. Hacé una copia de vez en cuando para no perder nada, o para pasarla a otro equipo.</div>
+      <div class="note">Un archivo con todo lo guardado, por si hace falta empezar de nuevo o pasar los datos a mano.</div>
       <div class="row" style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn alt" id="bkSave" style="flex:1">Guardar copia</button><button class="btn alt" id="bkLoad" style="flex:1">Recuperar copia</button></div>
       <input type="file" id="bkIn" accept="application/json,.json" hidden>
       <button class="btn warn" id="wipeBtn">Borrar todo</button>
-      <div id="wipeConfirm" hidden class="status err">¿Seguro? Se borran charlas, turnos y recuerdos de este teléfono. <button class="btn warn" id="wipeYes" style="margin-top:.4rem;width:100%">Sí, borrar todo</button></div>
+      <div id="wipeConfirm" hidden class="status err">¿Seguro? Se borran charlas, turnos y recuerdos de este equipo y se deja de sincronizar (lo guardado en los otros equipos no se toca). <button class="btn warn" id="wipeYes" style="margin-top:.4rem;width:100%">Sí, borrar todo</button></div>
     </div>
     <button class="btn" id="cfgClose">Listo</button>
   </div>
@@ -387,7 +390,10 @@ const saludo = () => { const h = new Date().getHours(); return h < 13 ? "Buen d�
 /* ================= almacenamiento (este teléfono) ================= */
 const LS = {
   get(k){ try { return JSON.parse(localStorage.getItem("contigo:" + k)); } catch { return null; } },
-  set(k, v){ try { localStorage.setItem("contigo:" + k, JSON.stringify(v)); return true; } catch (e) { podarFotos(1); try { localStorage.setItem("contigo:" + k, JSON.stringify(v)); return true; } catch { toast("El teléfono se quedó sin lugar para guardar. Hacé una copia y borrá charlas viejas."); return false; } } },
+  set(k, v, { sync = true } = {}){
+    const ok = (() => { try { localStorage.setItem("contigo:" + k, JSON.stringify(v)); return true; } catch (e) { podarFotos(1); try { localStorage.setItem("contigo:" + k, JSON.stringify(v)); return true; } catch { toast("El equipo se quedó sin lugar para guardar. Hacé una copia y borrá charlas viejas."); return false; } } })();
+    if (ok && sync && SYNCABLE(k)) marcarSucio(k);
+    return ok; },
   del(k){ try { localStorage.removeItem("contigo:" + k); } catch {} },
   keys(){ const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith("contigo:")) out.push(k.slice(8)); } } catch {} return out; }
 };
@@ -408,9 +414,11 @@ function normMem(m){
   for (const k of ["condiciones","medicamentos","medicos"]) if (!Array.isArray(out.salud[k])) out.salud[k] = [];
   return out;
 }
+const SYNCABLE = k => k === "memoria" || k === "cfg" || /^chat-\d{4}-\d{2}-\d{2}$/.test(k);
 const S = { mem:normMem(LS.get("memoria")), chat:{fecha:hoy(), msgs:[]}, prev:[], sug:null, wx:null,
   busy:false, ctl:null, img:null, imgThumb:null, tab:"charlar" };
-const saveMem = () => { LS.set("memoria", S.mem); renderAll(); };
+const guardarMem = () => { S.mem._ts = Date.now(); LS.set("memoria", S.mem); };
+const saveMem = () => { guardarMem(); renderAll(); };
 const saveChat = () => LS.set("chat-" + S.chat.fecha, {fecha:S.chat.fecha, msgs:S.chat.msgs});
 function chatsGuardados(){ return LS.keys().filter(k => /^chat-\d{4}-\d{2}-\d{2}$/.test(k)).map(k => LS.get(k)).filter(d => d && d.fecha).sort((a,b) => a.fecha < b.fecha ? 1 : -1); }
 function podarFotos(dias = 30){
@@ -434,7 +442,7 @@ const PROV = {
     steps:['Entrá a <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">openrouter.ai</a> y creá una cuenta.','Tocá “Create Key”.','Pegá la clave acá abajo.'] }
 };
 const cfg = () => LS.get("cfg") || {};
-const setCfg = patch => LS.set("cfg", Object.assign(cfg(), patch));
+const setCfg = patch => LS.set("cfg", Object.assign(cfg(), patch, { _ts:Date.now() }));
 const prov = () => cfg().provider || "";
 const keyOf = p => (cfg().keys || {})[p || prov()] || "";
 const listOf = p => (cfg().lists || {})[p || prov()] || [];
@@ -860,10 +868,10 @@ async function enviar(texto){
   S.img = null; S.imgThumb = null; $("#attach").hidden = true; $("#box").value = ""; $("#box").placeholder = "Escribí acá…"; autosize();
   pararVoz();
   const prevTurns = historial();
-  const me = {r:"me", t:texto, ts:Date.now()}; if (thumb) me.foto = thumb;
+  const me = {id:nid(), r:"me", t:texto, ts:Date.now()}; if (thumb) me.foto = thumb;
   S.chat.msgs.push(me);
   const p = prov(), conWeb = !!S.mem.config.buscar && !img && ((p === "anthropic" || p === "gemini") || PIDE_WEB.test(texto));
-  const ai = {r:"ai", t:"", ts:Date.now(), buscando:conWeb && PIDE_WEB.test(texto)}; S.chat.msgs.push(ai);
+  const ai = {id:nid(), r:"ai", t:"", ts:Date.now(), buscando:conWeb && PIDE_WEB.test(texto)}; S.chat.msgs.push(ai);
   const idx = S.chat.msgs.length - 1;
   renderChat(); scrollFin(); saveChat();
   setBusy(true);
@@ -1031,10 +1039,146 @@ function guardarCopia(){
 async function recuperarCopia(file){
   try {
     const d = JSON.parse(await file.text()); if (d.app !== "contigo" || !d.memoria) throw 0;
-    S.mem = normMem(d.memoria); LS.set("memoria", S.mem);
+    S.mem = normMem(d.memoria); guardarMem();
     for (const c of d.chats || []) if (c && /^\d{4}-\d{2}-\d{2}$/.test(c.fecha)) LS.set("chat-" + c.fecha, c);
     cargarDatos(); renderAll(); toast("Copia recuperada.");
   } catch { toast("Ese archivo no es una copia de Contigo."); }
+}
+
+
+/* ================= sincronización entre equipos (cifrada) ================= */
+// El servidor (Apps Script, ver sync/Codigo.gs) solo guarda datos cifrados con el código del usuario.
+const SYNC_URL = "";
+const ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const normCode = c => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const fmtCode = c => (c.match(/.{1,4}/g) || []).join("-");
+const nuevoCodigo = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), b => ABC[b % ABC.length]).join("");
+const syncSt = () => LS.get("sync");
+const setSync = p => { const s = Object.assign(syncSt() || {}, p); LS.set("sync", s); return s; };
+let syncKey = null, syncando = false, otraVez = false, pushT;
+async function claveSync(code){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name:"PBKDF2", salt:new TextEncoder().encode("contigo-sync-v1"), iterations:150000, hash:"SHA-256" }, base, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+}
+async function idSync(code){ const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("contigo-id:" + code)); return Array.from(new Uint8Array(h), b => b.toString(16).padStart(2, "0")).join(""); }
+function b64e(u8){ let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function b64d(s){ const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+async function cifrar(obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name:"AES-GCM", iv }, syncKey, new TextEncoder().encode(JSON.stringify(obj))));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return b64e(out);
+}
+async function descifrar(c){ const u = b64d(c); return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name:"AES-GCM", iv:u.subarray(0, 12) }, syncKey, u.subarray(12)))); }
+async function rpc(body){
+  const r = await fetch(SYNC_URL, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body:JSON.stringify(body) });
+  if (!r.ok) throw new Error("http " + r.status);
+  const j = await r.json(); if (!j.ok) throw new Error(j.error || "error"); return j;
+}
+function marcarSucio(k){ const s = syncSt(); if (!s || !s.id) return; s.dirty = s.dirty || {}; s.dirty[k] = 1; LS.set("sync", s); clearTimeout(pushT); pushT = setTimeout(sincronizar, 2500); }
+const docTs = (k, v) => /^chat-/.test(k) ? Math.max(0, ...(v.msgs || []).map(x => x.ts || 0)) : (v._ts || 0);
+// Junta lo que llegó con lo de este equipo. Devuelve true si cambió algo acá.
+function fusionar(k, rem){
+  const loc = LS.get(k);
+  if (k === "memoria" || k === "cfg") {
+    if (!loc || (rem._ts || 0) > (loc._ts || 0)) {
+      let nv = rem;
+      if (k === "cfg" && loc) nv = Object.assign({}, rem, { keys:Object.assign({}, loc.keys, rem.keys), lists:Object.assign({}, loc.lists, rem.lists), models:Object.assign({}, loc.models, rem.models) });
+      LS.set(k, nv, { sync:false }); return true;
+    }
+    if ((loc._ts || 0) > (rem._ts || 0)) marcarSucio(k);
+    return false;
+  }
+  if (/^chat-/.test(k)) {
+    const key = x => x.id || (x.ts + "|" + x.r), map = new Map(), vistos = new Set();
+    ((loc && loc.msgs) || []).forEach(x => map.set(key(x), x));
+    let cambio = false, faltan = false;
+    for (const x of rem.msgs || []) { const kk = key(x); vistos.add(kk); const l = map.get(kk);
+      if (!l || (x.t || "").length > (l.t || "").length) { map.set(kk, x); cambio = true; } }
+    for (const kk of map.keys()) if (!vistos.has(kk)) faltan = true;
+    if (cambio) LS.set(k, { fecha:rem.fecha || (loc && loc.fecha), msgs:[...map.values()].sort((a,b) => (a.ts || 0) - (b.ts || 0)) }, { sync:false });
+    if (faltan) marcarSucio(k);
+    return cambio;
+  }
+  return false;
+}
+async function sincronizar(){
+  const s = syncSt(); if (!s || !s.id || !SYNC_URL || !syncKey) return;
+  if (syncando) { otraVez = true; return; }
+  if (S.busy) { clearTimeout(pushT); pushT = setTimeout(sincronizar, 4000); return; }
+  syncando = true; renderSyncEstado("Sincronizando…");
+  try {
+    // 1) bajar y juntar lo nuevo de los otros equipos
+    const r = await rpc({ a:"get", id:s.id, since:s.last || 0 });
+    let cambio = false;
+    for (const [k, d] of Object.entries(r.docs || {})) { if (!SYNCABLE(k)) continue; try { if (fusionar(k, await descifrar(d.c))) cambio = true; } catch (e) { console.warn("sync", k, e); } }
+    setSync({ last:r.s || 0 });
+    if (cambio && !S.busy) { S.mem = normMem(LS.get("memoria")); cargarDatos(); renderAll(); if (!$("#conSheet").hidden) renderConexion(); }
+    // 2) subir lo cambiado acá
+    const dirty = Object.keys(syncSt().dirty || {});
+    if (dirty.length) {
+      const docs = {}; for (const k of dirty) { const v = LS.get(k); if (v != null) docs[k] = { ts:docTs(k, v), c:await cifrar(v) }; }
+      const cur = syncSt(); dirty.forEach(k => delete cur.dirty[k]); LS.set("sync", cur);
+      try { await rpc({ a:"put", id:s.id, docs }); }
+      catch (e) { const c2 = syncSt(); if (c2) { c2.dirty = c2.dirty || {}; dirty.forEach(k => c2.dirty[k] = 1); LS.set("sync", c2); } throw e; }
+    }
+    setSync({ at:Date.now(), err:null });
+  } catch (e) { console.warn("sync", e); if (syncSt()) setSync({ err:String(e.message || e) }); }
+  syncando = false; renderSyncEstado();
+  if (otraVez) { otraVez = false; sincronizar(); }
+}
+async function activarSync(code, nuevo){
+  code = normCode(code);
+  if (code.length !== 16) { toast("El código tiene 16 letras y números."); return false; }
+  if (!(window.crypto && crypto.subtle)) { toast("Este navegador no permite sincronizar."); return false; }
+  syncKey = await claveSync(code);
+  const dirty = {};
+  LS.keys().filter(SYNCABLE).forEach(k => { dirty[k] = 1; });
+  if (!nuevo) {
+    // al sumarse a un código existente, manda lo que ya estaba guardado en los otros equipos
+    const m = LS.get("memoria"); if (m) { m._ts = 0; LS.set("memoria", m, { sync:false }); }
+    const c = LS.get("cfg"); if (c) { c._ts = 0; LS.set("cfg", c, { sync:false }); }
+  }
+  LS.set("sync", { code, id:await idSync(code), last:0, dirty, at:0 });
+  await sincronizar();
+  const st = syncSt();
+  if (st && st.err) toast("No pude conectar con el servidor. Revisá internet; se reintenta solo.");
+  else toast(nuevo ? "Sincronización activada." : "¡Listo! Este equipo ya tiene lo mismo que los otros.");
+  return true;
+}
+let qrLib = null;
+function dibujarQR(text){
+  const el = $("#qr"); if (!el) return;
+  const draw = () => { el.innerHTML = ""; try { new QRCode(el, { text, width:180, height:180, correctLevel:QRCode.CorrectLevel.M }); } catch {} };
+  if (window.QRCode) return draw();
+  if (!qrLib) qrLib = new Promise((ok, ko) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; sc.onload = ok; sc.onerror = ko; document.head.appendChild(sc); });
+  qrLib.then(draw).catch(() => {});
+}
+const syncLink = () => location.origin + location.pathname + "#sync-" + fmtCode(syncSt().code);
+function renderSyncCard(codigoDado){
+  const el = $("#syncCard"), s = syncSt();
+  const h = `<span class="l">Usar en el teléfono y en la compu</span>`;
+  if (!SYNC_URL) { el.innerHTML = h + `<div class="note">La sincronización todavía no está configurada.</div>`; return; }
+  if (!s || !s.code) {
+    el.innerHTML = h + `<div class="note">Activala para ver las mismas charlas, turnos y recuerdos en todos tus equipos. Los datos viajan cifrados con un código que solo vos tenés.</div>
+      <button class="btn" id="syncNew">Activar en este equipo</button>
+      <details class="more" id="syncJoinBox"${codigoDado ? " open" : ""}><summary>Ya tengo un código de otro equipo</summary>
+        <form class="form" id="syncJoin"><input class="in code" id="syncCode" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${esc(codigoDado ? fmtCode(codigoDado) : "")}"><button class="btn" type="submit">Conectar este equipo</button></form></details>`;
+    return;
+  }
+  el.innerHTML = h + `<div class="status ok" id="syncEst"></div>
+    <div class="note">Para sumar otro equipo, escaneá este código QR con la cámara del otro equipo, o abrí Contigo allá → Ajustes → “Ya tengo un código” y escribí:</div>
+    <div class="code">${fmtCode(s.code)}</div>
+    <div id="qr" style="display:grid;place-items:center"></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn alt" id="syncCopy" style="flex:1">Copiar link</button><button class="btn alt" id="syncNow" style="flex:1">Sincronizar ahora</button></div>
+    <div class="note">Guardá este código en un lugar seguro: es la llave de tus datos. Sin él no se pueden recuperar. No se lo pases a nadie.</div>
+    <button class="btn alt" id="syncOff">Dejar de sincronizar este equipo</button>`;
+  renderSyncEstado(); dibujarQR(syncLink());
+}
+function renderSyncEstado(txt){
+  const el = $("#syncEst"); if (!el) return; const s = syncSt() || {};
+  const err = !txt && s.err;
+  el.className = "status " + (err ? "err" : "ok");
+  el.textContent = txt || (err ? "No se pudo sincronizar. Se reintenta solo cuando haya internet." : s.at ? "Sincronizado " + (iso(new Date(s.at)) === hoy() ? "hoy" : "el " + fechaLarga(iso(new Date(s.at)))) + " a las " + hhmm(s.at) : "Activado");
 }
 
 /* ================= utilidades UI ================= */
@@ -1084,11 +1228,17 @@ document.addEventListener("click", e => {
   if (d.delint !== undefined) { m.intereses.splice(Number(d.delint), 1); saveMem(); return; }
   if (d.hday) { renderHist(d.hday); return; }
   if (d.hback) { renderHist(); return; }
+  if (t.id === "syncNew") { t.disabled = true; activarSync(nuevoCodigo(), true).then(() => renderSyncCard()); return; }
+  if (t.id === "syncNow") { sincronizar(); return; }
+  if (t.id === "syncCopy") { const l = syncLink(); (navigator.clipboard ? navigator.clipboard.writeText(l) : Promise.reject()).then(() => toast("Link copiado. Abrilo en el otro equipo."), () => toast(l)); return; }
+  if (t.id === "syncOff") { if (!t.dataset.sure) { t.dataset.sure = "1"; t.textContent = "Tocá otra vez para confirmar"; setTimeout(() => { delete t.dataset.sure; t.textContent = "Dejar de sincronizar este equipo"; }, 4000); return; }
+    LS.del("sync"); syncKey = null; renderSyncCard(); toast("Este equipo dejó de sincronizar. Los datos quedan acá."); return; }
   if (t.id === "famCopy") { const txt = $("#famTxt").textContent; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("Copiado."), () => { const r = document.createRange(); r.selectNodeContents($("#famTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Texto seleccionado: copialo."); }); return; }
 });
 
 document.addEventListener("submit", e => {
   e.preventDefault(); const f = e.target, m = S.mem, v = id => $("#" + id).value.trim();
+  if (f.id === "syncJoin") { const b = f.querySelector("button"); b.disabled = true; b.textContent = "Conectando…"; activarSync(v("syncCode"), false).then(() => renderSyncCard()); return; }
   if (f.id === "onbForm") { const n = v("onbN"); if (!n) return; m.perfil.nombre = n; if (v("onbC")) m.perfil.ciudad = v("onbC"); saveMem(); cargarClima().then(renderWelcome);
     if (conectado()) setTimeout(() => enviar("Hola, me llamo " + n + "."), 50); else abrirConexion(); return; }
   if (f.id === "addForm") { const t = v("addTxt"); if (!t) return; const fe = v("addFecha"); if (fe) m.citas.push({id:nid(), titulo:t, fecha:fe, hora:v("addHora"), lugar:"", nota:"", hecha:false}); else m.pendientes.push({id:nid(), texto:t, tipo:"otro", estado:"abierto", creado:hoy()}); f.reset(); saveMem(); toast("Anotado."); return; }
@@ -1100,7 +1250,7 @@ document.addEventListener("submit", e => {
 });
 let pt;
 [["pNombre","nombre"],["pApodo","apodo"],["pCiudad","ciudad"],["pEdad","edad"],["pVive","vive_con"],["obraIn","obra_social"]].forEach(([id, k]) =>
-  $("#" + id).addEventListener("input", e => { S.mem.perfil[k] = e.target.value.trim(); renderHeader(); clearTimeout(pt); pt = setTimeout(() => { LS.set("memoria", S.mem); if (k === "ciudad") cargarClima().then(renderWelcome); }, 900); }));
+  $("#" + id).addEventListener("input", e => { S.mem.perfil[k] = e.target.value.trim(); renderHeader(); clearTimeout(pt); pt = setTimeout(() => { guardarMem(); if (k === "ciudad") cargarClima().then(renderWelcome); }, 900); }));
 $("#histQ").addEventListener("input", () => renderHist());
 $("#famBtn").onclick = resumenFamilia;
 
@@ -1108,7 +1258,7 @@ const SIZES = ["s","m","l"];
 $("#sizeBtn").onclick = () => { const c = document.documentElement.dataset.size || "m"; const n = SIZES[(SIZES.indexOf(c) + 1) % 3]; setSize(n); toast({s:"Letra normal", m:"Letra grande", l:"Letra muy grande"}[n]); };
 $("#cfgBtn").onclick = () => { const c = S.mem.config; $("#cfgName").value = c.asistente; $("#cfgVoz").checked = !!c.voz; $("#cfgBuscar").checked = !!c.buscar; $("#cfgAuto").checked = !!c.autoEnviar; $("#cfgMotor").value = c.motor || "auto";
   document.querySelectorAll("#rateSeg button").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.r) === Number(c.rate) ? "true" : "false"));
-  $("#wipeConfirm").hidden = true; renderConNow(); $("#cfgSheet").hidden = false; };
+  $("#wipeConfirm").hidden = true; renderConNow(); renderSyncCard(); $("#cfgSheet").hidden = false; };
 $("#cfgSheet").addEventListener("click", e => { if (e.target.id === "cfgSheet") $("#cfgClose").click(); });
 $("#conSheet").addEventListener("click", e => { if (e.target.id === "conSheet") $("#conClose").click(); });
 $("#sizeSeg").onclick = e => { const b = e.target.closest("button"); if (b) setSize(b.dataset.s); };
@@ -1122,7 +1272,7 @@ $("#bkSave").onclick = guardarCopia;
 $("#bkLoad").onclick = () => $("#bkIn").click();
 $("#bkIn").onchange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) recuperarCopia(f); };
 $("#wipeBtn").onclick = () => { $("#wipeConfirm").hidden = false; };
-$("#wipeYes").onclick = () => { const keep = LS.get("cfg"); LS.keys().forEach(k => LS.del(k)); if (keep) LS.set("cfg", keep); S.mem = normMem(null); S.chat = {fecha:hoy(), msgs:[]}; S.prev = []; S.sug = null; S.wx = null; $("#cfgSheet").hidden = true; renderAll(); toast("Listo, empezamos de cero."); };
+$("#wipeYes").onclick = () => { const keep = LS.get("cfg"); LS.keys().forEach(k => LS.del(k)); syncKey = null; if (keep) LS.set("cfg", keep, { sync:false }); S.mem = normMem(null); S.chat = {fecha:hoy(), msgs:[]}; S.prev = []; S.sug = null; S.wx = null; $("#cfgSheet").hidden = true; renderAll(); toast("Listo, empezamos de cero."); };
 
 /* ================= arranque ================= */
 function cargarDatos(){
@@ -1135,7 +1285,18 @@ podarFotos(30);
 cargarDatos();
 renderAll(); scrollFin();
 cargarClima().then(() => { renderWelcome(); if (conectado() && S.mem.perfil.nombre && !S.sug && (S.chat.msgs.length || S.prev.length)) sugerir(); });
-document.addEventListener("visibilitychange", () => { if (!document.hidden && S.chat.fecha !== hoy() && !S.busy) { S.prev.unshift({fecha:S.chat.fecha, msgs:S.chat.msgs}); S.chat = {fecha:hoy(), msgs:[]}; S.sug = null; renderAll(); } });
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if (S.chat.fecha !== hoy() && !S.busy) { S.prev.unshift({fecha:S.chat.fecha, msgs:S.chat.msgs}); S.chat = {fecha:hoy(), msgs:[]}; S.sug = null; renderAll(); }
+  sincronizar();
+});
+(async () => {
+  const m = location.hash.match(/^#sync-([A-Za-z0-9-]+)$/);
+  if (m) { history.replaceState(null, "", location.pathname); const st = syncSt();
+    if (!st || !st.code) { $("#cfgBtn").click(); renderSyncCard(normCode(m[1])); const ci = $("#syncCode"); if (ci) ci.scrollIntoView({ block:"center" }); toast("Tocá “Conectar este equipo” para traer tus datos."); } }
+  const st = syncSt();
+  if (st && st.code && SYNC_URL && window.crypto && crypto.subtle) { syncKey = await claveSync(st.code); sincronizar(); setInterval(() => { if (!document.hidden) sincronizar(); }, 45000); }
+})();
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 })();
 </script>

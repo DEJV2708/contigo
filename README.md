@@ -17,6 +17,12 @@ Funciona con la clave (API key) de quien la use, guardada solo en el teléfono:
 
 Otras APIs: clima de [Open-Meteo](https://open-meteo.com) (sin clave), voz natural de Gemini TTS (si hay clave de Gemini), dictado por voz del navegador.
 
-## Datos
+## Datos y sincronización
 
-Todo queda en el navegador del teléfono (`localStorage`). Desde Ajustes se puede guardar y recuperar una copia de seguridad en un archivo.
+Todo queda en el navegador de cada equipo (`localStorage`). Para tener lo mismo en el teléfono y en la compu: Ajustes → "Activar en este equipo" genera un código de 16 caracteres (y un QR); en el otro equipo se escanea el QR o se escribe el código en "Ya tengo un código".
+
+Los datos se cifran en el equipo (AES-GCM, clave derivada del código con PBKDF2) antes de salir. El servidor ([`sync/Codigo.gs`](sync/Codigo.gs), Google Apps Script) solo guarda texto cifrado, identificado por un hash del código: nunca ve el código ni el contenido. Sin el código los datos no se pueden recuperar.
+
+Para instalar el servidor: crear un proyecto en script.google.com, pegar `sync/Codigo.gs`, Implementar → Nueva implementación → Aplicación web (Ejecutar como: Yo · Acceso: Cualquier persona) y poner la URL `/exec` en `SYNC_URL` de `index.html`.
+
+También hay copia de seguridad manual en un archivo (Ajustes).
