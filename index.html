@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Contigo</title>
+<meta name="description" content="Asistente de compañía para personas mayores: charla que recuerda todo, turnos, pendientes, salud, noticias y clima.">
+<meta name="theme-color" content="#0B6A86">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-64.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Contigo">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Literata:opsz,wght@7..72,500;7..72,700&display=swap">
+<style>
+/* Layout: app de una pantalla — encabezado con saludo, área central con solapas, barra inferior de 4 solapas grandes. Letra grande (Atkinson Hyperlegible, diseñada para baja visión). */
+:root{
+  --bg:#F3F6F7; --surface:#FFFFFF; --surface2:#E7EEF0; --line:#CBD8DC;
+  --fg:#13232B; --muted:#4D6169; --accent:#0B6A86; --accent-fg:#FFFFFF;
+  --sun:#E39A2B; --sun-soft:#FBEBD2; --sun-fg:#8A5A12; --ok:#2E7D4F; --ok-soft:#DDF1E5; --warn:#B3261E; --warn-soft:#F9DEDC;
+  --me:#0B6A86; --me-fg:#FFFFFF;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-disp:"Literata", Georgia, "Times New Roman", serif;
+  --fs:21px; --r:18px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1519; --surface:#16232A; --surface2:#1E2F37; --line:#2E444E;
+  --fg:#EDF3F5; --muted:#A5B8BF; --accent:#5CC3E0; --accent-fg:#06222B;
+  --sun:#F2B24E; --sun-soft:#3A2C14; --sun-fg:#F2B24E; --ok:#7AD49C; --ok-soft:#173326; --warn:#FF9C92; --warn-soft:#3C1A17;
+  --me:#1F5A6C; --me-fg:#F2FAFC; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0D1519; --surface:#16232A; --surface2:#1E2F37; --line:#2E444E;
+  --fg:#EDF3F5; --muted:#A5B8BF; --accent:#5CC3E0; --accent-fg:#06222B;
+  --sun:#F2B24E; --sun-soft:#3A2C14; --sun-fg:#F2B24E; --ok:#7AD49C; --ok-soft:#173326; --warn:#FF9C92; --warn-soft:#3C1A17;
+  --me:#1F5A6C; --me-fg:#F2FAFC; color-scheme:dark }
+html[data-size="s"]{--fs:18px} html[data-size="l"]{--fs:25px}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+html{font-size:var(--fs)}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:1rem;line-height:1.45;-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+img{max-width:100%}
+a{color:var(--accent)}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto;max-width:760px;margin:0 auto}
+header.top{display:flex;align-items:center;gap:.6rem;padding:.7rem 16px .5rem;border-bottom:1px solid var(--line);background:var(--bg)}
+.hello{flex:1;min-width:0}
+.hello h1{font-family:var(--f-disp);font-weight:700;font-size:1.35rem;margin:0;line-height:1.15;text-wrap:balance}
+.hello .date{color:var(--muted);font-size:.85rem}
+.iconbtn{min-width:52px;height:52px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center;font-weight:700;padding:0 .6rem}
+.iconbtn svg{width:26px;height:26px}
+main{overflow-y:auto;overflow-x:hidden;min-height:0}
+.tab{padding:1rem 16px 1.5rem;display:none;flex-direction:column;gap:1rem}
+.tab.on{display:flex}
+#tab-charlar{padding:0;min-height:100%}
+nav.bottom{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--surface);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.bottom button{border:0;background:none;padding:.55rem .2rem .5rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;font-size:.78rem;font-weight:700;color:var(--muted);min-height:66px}
+nav.bottom button svg{width:30px;height:30px}
+nav.bottom button[aria-current="true"]{color:var(--accent)}
+nav.bottom button[aria-current="true"] .pill{background:var(--surface2)}
+nav.bottom .pill{border-radius:99px;padding:.15rem 1rem;display:grid;place-items:center}
+.badge{display:inline-block;min-width:1.3em;padding:0 .35em;border-radius:99px;background:var(--sun);color:#1b1205;font-size:.7rem;line-height:1.3em;margin-left:.2rem;vertical-align:top}
+
+/* Chat */
+.chatwrap{display:flex;flex-direction:column;min-height:100%}
+.msgs{flex:1;padding:1rem 16px .5rem;display:flex;flex-direction:column;gap:.8rem}
+.msg{max-width:88%;padding:.75rem 1rem;border-radius:var(--r);overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--me);color:var(--me-fg);border-bottom-right-radius:6px}
+.msg.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg p{margin:.2rem 0}
+.msg ul{margin:.3rem 0;padding-left:1.2rem}
+.msg img.thumb{display:block;max-width:220px;border-radius:12px;margin-bottom:.4rem}
+.msg .time{font-size:.7rem;opacity:.7;margin-top:.3rem}
+.msg .acts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.55rem}
+.msg .src{margin-top:.5rem;font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:.15rem}
+.msg .src a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.chip{display:inline-flex;align-items:center;gap:.35rem;border-radius:99px;padding:.3rem .75rem;font-size:.82rem;background:var(--ok-soft);color:var(--ok);font-weight:700}
+.chip svg{width:16px;height:16px}
+.listen{border:1.5px solid var(--line);background:var(--surface2);border-radius:99px;padding:.35rem .9rem;font-size:.85rem;font-weight:700;display:inline-flex;align-items:center;gap:.35rem}
+.listen svg{width:20px;height:20px}
+.dayline{align-self:center;color:var(--muted);font-size:.8rem;padding:.2rem .8rem;border-radius:99px;background:var(--surface2)}
+.thinking{display:inline-flex;gap:.3rem;align-items:center;color:var(--muted)}
+.thinking i{width:.55rem;height:.55rem;border-radius:50%;background:var(--accent);opacity:.3;animation:dot 1.2s infinite}
+.thinking i:nth-child(2){animation-delay:.2s}.thinking i:nth-child(3){animation-delay:.4s}
+@keyframes dot{50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){.thinking i,.mic.on{animation:none}}
+.composer{position:sticky;bottom:0;background:var(--bg);border-top:1px solid var(--line);padding:.6rem 16px .7rem;display:flex;flex-direction:column;gap:.4rem}
+.crow{display:flex;gap:.5rem;align-items:flex-end}
+.crow textarea,.crow .in{flex:1;min-width:0}
+.crow textarea{resize:none;border:2px solid var(--line);border-radius:16px;background:var(--surface);padding:.65rem .8rem;max-height:9rem;line-height:1.35}
+.crow textarea:focus{border-color:var(--accent);outline:none}
+.send{min-width:60px;height:60px;border-radius:16px;border:0;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center}
+.send svg{width:30px;height:30px}
+.send.stop{background:var(--warn);color:#fff}
+.photo,.mic{min-width:60px;height:60px;border-radius:16px;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.photo svg,.mic svg{width:28px;height:28px}
+.mic.on{background:var(--warn);border-color:var(--warn);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+.hint{font-size:.75rem;color:var(--muted)}
+.attach{display:flex;align-items:center;gap:.6rem;font-size:.85rem}
+.attach img{height:56px;border-radius:8px}
+.attach button{border:0;background:none;color:var(--warn);font-weight:700;text-decoration:underline}
+
+/* Bienvenida / tarjetas */
+.welcome{padding:1rem 16px 0;display:flex;flex-direction:column;gap:.9rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1rem}
+.card h2,.sec h2{font-family:var(--f-disp);font-size:1.12rem;margin:0 0 .5rem;font-weight:700;text-wrap:balance}
+.card.sun{background:var(--sun-soft);border-color:transparent}
+.card p{margin:.2rem 0 .6rem}
+.sug{display:flex;flex-direction:column;gap:.55rem}
+.sugbtn{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:.7rem .9rem;display:flex;gap:.7rem;align-items:flex-start}
+.sugbtn b{display:block}
+.sugbtn span{color:var(--muted);font-size:.88rem}
+.sugbtn .k{flex:none;width:.7rem;height:.7rem;border-radius:50%;background:var(--sun);margin-top:.45rem}
+.quick{display:flex;flex-wrap:wrap;gap:.5rem}
+.quick button{border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:.55rem 1rem;font-weight:700;font-size:.9rem}
+.nextcita{display:flex;gap:.8rem;align-items:center}
+.cal{flex:none;width:3.6rem;border-radius:12px;overflow:hidden;text-align:center;border:1.5px solid var(--line);background:var(--surface)}
+.cal .m{background:var(--accent);color:var(--accent-fg);font-size:.65rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:.1rem 0}
+.cal .d{font-family:var(--f-disp);font-size:1.4rem;font-weight:700;line-height:1.3;font-variant-numeric:tabular-nums}
+.wx{display:flex;align-items:center;gap:1rem}
+.wx .t{font-family:var(--f-disp);font-size:2.3rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.wx .d{flex:1;min-width:0}
+.wx .d b{display:block}
+.wx .d span{color:var(--muted);font-size:.88rem}
+
+/* Listas */
+.sec{display:flex;flex-direction:column;gap:.6rem}
+.sec .sub{color:var(--muted);font-size:.85rem;margin-top:-.3rem}
+.item{display:flex;gap:.75rem;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:.75rem .9rem}
+.item .tx{flex:1;min-width:0;overflow-wrap:anywhere}
+.item .tx small{display:block;color:var(--muted);font-size:.82rem}
+.item.done .tx{opacity:.6;text-decoration:line-through}
+.check{flex:none;width:48px;height:48px;border-radius:14px;border:2.5px solid var(--accent);background:var(--surface);display:grid;place-items:center;color:var(--accent)}
+.check svg{width:28px;height:28px}
+.item.done .check{background:var(--accent);color:var(--accent-fg)}
+.del{flex:none;border:0;background:none;color:var(--muted);width:44px;height:44px;border-radius:12px;display:grid;place-items:center}
+.del svg{width:22px;height:22px}
+.tag{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;padding:.05rem .4rem;background:var(--surface2);color:var(--muted);margin-right:.3rem;vertical-align:middle}
+.tag.medico{background:var(--warn-soft);color:var(--warn)}
+.tag.arreglo{background:var(--sun-soft);color:var(--sun-fg)}
+.empty{color:var(--muted);font-size:.92rem;padding:.4rem .2rem}
+.form{display:flex;flex-direction:column;gap:.55rem}
+.form .row{display:flex;gap:.5rem;flex-wrap:wrap}
+.form .row > *{flex:1 1 9rem;min-width:0}
+.in{width:100%;border:2px solid var(--line);border-radius:14px;background:var(--surface);padding:.6rem .75rem;min-height:52px}
+.in:focus{border-color:var(--accent);outline:none}
+label.l,.l{font-size:.82rem;font-weight:700;color:var(--muted);display:block;margin-bottom:.15rem}
+.btn{border:0;border-radius:14px;background:var(--accent);color:var(--accent-fg);font-weight:700;padding:.75rem 1.1rem;min-height:56px}
+.btn.alt{background:var(--surface2);color:var(--fg);border:1.5px solid var(--line)}
+.btn.warn{background:var(--warn);color:#fff}
+.btn:disabled{opacity:.5}
+details.more summary{cursor:pointer;color:var(--accent);font-weight:700;padding:.3rem 0;min-height:44px;display:flex;align-items:center}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.5rem}
+.num{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:.6rem .8rem;text-decoration:none;color:inherit;display:block}
+.num b{font-family:var(--f-disp);font-size:1.5rem;display:block;font-variant-numeric:tabular-nums}
+.num span{font-size:.8rem;color:var(--muted)}
+.num.urg b{color:var(--warn)}
+.note{font-size:.85rem;color:var(--muted)}
+.chips2{display:flex;flex-wrap:wrap;gap:.45rem}
+.chips2 .c{display:inline-flex;align-items:center;gap:.2rem;background:var(--surface);border:1.5px solid var(--line);border-radius:99px;padding:.25rem .3rem .25rem .8rem;font-size:.9rem}
+.chips2 .c button{border:0;background:none;color:var(--muted);width:32px;height:32px;border-radius:50%}
+.hist{display:flex;flex-direction:column;gap:.5rem}
+.hday{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:.7rem .9rem}
+.hday b{display:block}
+.hday span{color:var(--muted);font-size:.85rem;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.found small{color:var(--muted);display:block}
+mark{background:var(--sun-soft);color:inherit;border-radius:3px}
+.out{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:.8rem;font-size:.92rem}
+
+/* Hojas */
+.sheet{position:fixed;inset:0;background:rgba(5,12,15,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet .panel{background:var(--bg);width:100%;max-width:760px;max-height:92%;overflow:auto;border-radius:22px 22px 0 0;padding:1.1rem 16px calc(1.2rem + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:.9rem}
+.sheet h2{font-family:var(--f-disp);margin:0}
+.seg{display:flex;border:2px solid var(--line);border-radius:14px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--surface);padding:.6rem;min-height:52px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:.7rem .9rem;min-height:56px}
+.toggle input{width:28px;height:28px;accent-color:var(--accent);flex:none}
+.provs{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.5rem}
+.prov{text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:.7rem .8rem}
+.prov b{display:block}
+.prov span{font-size:.78rem;color:var(--muted)}
+.prov[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.prov .free{display:inline-block;font-size:.65rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:var(--ok-soft);color:var(--ok);border-radius:6px;padding:0 .35rem;margin-left:.25rem;vertical-align:middle}
+.steps{margin:.2rem 0;padding-left:1.3rem;font-size:.9rem}
+.steps li{margin:.2rem 0}
+.status{font-size:.88rem;padding:.5rem .7rem;border-radius:12px}
+.status.ok{background:var(--ok-soft);color:var(--ok)}
+.status.err{background:var(--warn-soft);color:var(--warn)}
+select.in{appearance:auto}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:.6rem 1.1rem;border-radius:99px;font-weight:700;z-index:30;max-width:calc(100% - 32px);text-align:center}
+.banner{margin:0 16px;border-radius:14px;padding:.6rem .9rem;background:var(--sun-soft);color:var(--fg);font-size:.9rem;display:flex;gap:.6rem;align-items:center}
+.banner button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:.4rem .8rem;font-weight:700;margin-left:auto}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="hello">
+      <h1 id="hola">Hola</h1>
+      <div class="date" id="hoyTxt"></div>
+    </div>
+    <button class="iconbtn" id="sizeBtn" aria-label="Cambiar tamaño de letra" title="Tamaño de letra">A<span style="font-size:.7em">A</span></button>
+    <button class="iconbtn" id="cfgBtn" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </header>
+
+  <main id="main">
+    <!-- CHARLAR -->
+    <section class="tab on" id="tab-charlar">
+      <div class="chatwrap">
+        <div class="welcome" id="welcome"></div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="composer">
+          <div class="attach" id="attach" hidden><img id="attachImg" alt="Foto para enviar"><span>Foto lista para mandar</span><button id="attachX">Quitar</button></div>
+          <div class="crow">
+            <button class="photo" id="photoBtn" aria-label="Mandar una foto" title="Mandar una foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+            <input type="file" id="photoIn" accept="image/*" hidden>
+            <textarea id="box" rows="1" placeholder="Escribí acá…" aria-label="Mensaje"></textarea>
+            <button class="mic" id="micBtn" aria-label="Hablar" title="Hablar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></button>
+            <button class="send" id="sendBtn" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+          </div>
+          <div class="hint" id="hint">Tocá el micrófono para hablar en vez de escribir.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AGENDA -->
+    <section class="tab" id="tab-agenda">
+      <div class="sec"><h2>Próximos turnos y salidas</h2><div id="citasList"></div></div>
+      <div class="sec"><h2>Cosas pendientes</h2><div class="sub">Tocá el cuadrado cuando esté hecho.</div><div id="pendList"></div></div>
+      <div class="card">
+        <h2>Anotar algo</h2>
+        <form class="form" id="addForm">
+          <div><label class="l" for="addTxt">¿Qué hay que hacer?</label><input class="in" id="addTxt" placeholder="Ej.: llamar al plomero por la canilla"></div>
+          <div class="row">
+            <div><label class="l" for="addFecha">Día (si es un turno)</label><input class="in" type="date" id="addFecha"></div>
+            <div><label class="l" for="addHora">Hora</label><input class="in" type="time" id="addHora"></div>
+          </div>
+          <button class="btn" type="submit">Anotar</button>
+        </form>
+      </div>
+      <details class="more"><summary>Ver lo que ya está hecho</summary><div id="doneList" class="sec" style="margin-top:.5rem"></div></details>
+    </section>
+
+    <!-- SALUD -->
+    <section class="tab" id="tab-salud">
+      <div class="sec">
+        <h2>Números útiles</h2>
+        <div class="nums">
+          <a class="num urg" href="tel:107"><b>107</b><span>Emergencias médicas (SAME)</span></a>
+          <a class="num urg" href="tel:911"><b>911</b><span>Policía y emergencias</span></a>
+          <a class="num" href="tel:138"><b>138</b><span>PAMI escucha y responde</span></a>
+          <a class="num" href="tel:100"><b>100</b><span>Bomberos</span></a>
+        </div>
+        <div class="note">Si te sentís muy mal (dolor de pecho, falta de aire, la cara se tuerce, mucha confusión), llamá al 107 o al 911 enseguida.</div>
+      </div>
+      <div class="sec"><h2>Mis remedios</h2><div id="medsList"></div>
+        <details class="more"><summary>Agregar un remedio</summary>
+          <form class="form" id="medForm"><div class="row"><input class="in" id="medN" placeholder="Nombre (ej.: Enalapril)"><input class="in" id="medD" placeholder="Dosis (ej.: 10 mg)"></div><input class="in" id="medH" placeholder="Cuándo (ej.: a la mañana y a la noche)"><button class="btn" type="submit">Guardar remedio</button></form>
+        </details>
+      </div>
+      <div class="sec"><h2>Mis médicos</h2><div id="docsList"></div>
+        <details class="more"><summary>Agregar un médico</summary>
+          <form class="form" id="docForm"><div class="row"><input class="in" id="docN" placeholder="Nombre"><input class="in" id="docE" placeholder="Especialidad"></div><div class="row"><input class="in" id="docT" placeholder="Teléfono" inputmode="tel"><input class="in" id="docL" placeholder="Dónde atiende"></div><button class="btn" type="submit">Guardar médico</button></form>
+        </details>
+      </div>
+      <div class="sec"><h2>Para tener en cuenta</h2><div class="sub">Problemas de salud, alergias, cosas que el médico dijo.</div><div class="chips2" id="condList"></div>
+        <form class="form" id="condForm"><div class="crow"><input class="in" id="condIn" placeholder="Ej.: presión alta, alergia a la penicilina"><button class="btn" type="submit">Sumar</button></div></form>
+      </div>
+      <div class="sec"><h2>Obra social</h2><input class="in" id="obraIn" placeholder="Ej.: PAMI, número de afiliado…"></div>
+    </section>
+
+    <!-- RECUERDOS -->
+    <section class="tab" id="tab-memoria">
+      <div class="sec"><h2>Sobre mí</h2>
+        <div class="form">
+          <div class="row"><div><label class="l" for="pNombre">Nombre</label><input class="in" id="pNombre"></div><div><label class="l" for="pApodo">Cómo te gusta que te digan</label><input class="in" id="pApodo"></div></div>
+          <div class="row"><div><label class="l" for="pCiudad">Ciudad donde vivís</label><input class="in" id="pCiudad" placeholder="Ej.: Mendoza"></div><div><label class="l" for="pEdad">Edad</label><input class="in" id="pEdad" inputmode="numeric"></div></div>
+          <div><label class="l" for="pVive">Con quién vivís</label><input class="in" id="pVive"></div>
+        </div>
+      </div>
+      <div class="sec"><h2>Mi gente</h2><div class="sub">Familia, amigos, vecinos, y cómo encontrarlos.</div><div id="persList"></div>
+        <details class="more"><summary>Agregar a alguien</summary>
+          <form class="form" id="persForm"><div class="row"><input class="in" id="persN" placeholder="Nombre"><input class="in" id="persR" placeholder="Quién es (ej.: hija, vecino)"></div><input class="in" id="persT" placeholder="Teléfono" inputmode="tel"><button class="btn" type="submit">Guardar</button></form>
+        </details>
+      </div>
+      <div class="sec"><h2>Lo que me gusta</h2><div class="chips2" id="intList"></div>
+        <form class="form" id="intForm"><div class="crow"><input class="in" id="intIn" placeholder="Ej.: tango, jardinería, River"><button class="btn" type="submit">Sumar</button></div></form>
+      </div>
+      <div class="sec"><h2>Cosas que me acuerdo de vos</h2><div id="recList"></div></div>
+      <div class="sec"><h2>Lo que hablamos</h2>
+        <input class="in" id="histQ" placeholder="Buscar en las charlas (ej.: plomero)">
+        <div class="hist" id="histList"></div>
+      </div>
+      <div class="sec"><h2>Resumen para la familia</h2>
+        <div class="sub">Un resumen corto de turnos, pendientes y cómo venís, para mandarle a un familiar.</div>
+        <button class="btn alt" id="famBtn">Armar resumen</button>
+        <div id="famOut"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom" id="nav">
+    <button data-tab="charlar" aria-current="true"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Charlar</button>
+    <button data-tab="agenda"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span>Agenda<span class="badge" id="agBadge" hidden></span></span></button>
+    <button data-tab="salud"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span>Salud</button>
+    <button data-tab="memoria"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V21h16"/></svg></span>Recuerdos</button>
+  </nav>
+</div>
+
+<!-- Ajustes -->
+<div class="sheet" id="cfgSheet" hidden>
+  <div class="panel" role="dialog" aria-label="Ajustes">
+    <h2>Ajustes</h2>
+    <div class="card" style="display:flex;flex-direction:column;gap:.4rem">
+      <span class="l">Inteligencia artificial conectada</span>
+      <div id="conNow"></div>
+      <button class="btn alt" id="conOpen">Cambiar conexión</button>
+    </div>
+    <div><label class="l" for="cfgName">Nombre de tu asistente</label><input class="in" id="cfgName" placeholder="Clara"></div>
+    <div><span class="l">Tamaño de letra</span><div class="seg" id="sizeSeg"><button data-s="s">Normal</button><button data-s="m">Grande</button><button data-s="l">Muy grande</button></div></div>
+    <label class="toggle" for="cfgVoz"><span>Leer las respuestas en voz alta</span><input type="checkbox" id="cfgVoz"></label>
+    <div id="vozMotorBox"><label class="l" for="cfgMotor">Voz</label><select class="in" id="cfgMotor"><option value="auto">Voz natural de Google Gemini</option><option value="sistema">Voz del teléfono</option></select></div>
+    <div><span class="l">Velocidad de la voz</span><div class="seg" id="rateSeg"><button data-r="0.8">Lenta</button><button data-r="0.95">Normal</button><button data-r="1.1">Rápida</button></div></div>
+    <label class="toggle" for="cfgBuscar"><span>Buscar en internet cuando haga falta (médicos, noticias, direcciones)</span><input type="checkbox" id="cfgBuscar"></label>
+    <label class="toggle" for="cfgAuto"><span>Mandar solo lo que dicto con el micrófono</span><input type="checkbox" id="cfgAuto"></label>
+    <div class="card" style="display:flex;flex-direction:column;gap:.5rem">
+      <span class="l">Copia de seguridad</span>
+      <div class="note">Todo se guarda en este teléfono. Hacé una copia de vez en cuando para no perder nada, o para pasarla a otro equipo.</div>
+      <div class="row" style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn alt" id="bkSave" style="flex:1">Guardar copia</button><button class="btn alt" id="bkLoad" style="flex:1">Recuperar copia</button></div>
+      <input type="file" id="bkIn" accept="application/json,.json" hidden>
+      <button class="btn warn" id="wipeBtn">Borrar todo</button>
+      <div id="wipeConfirm" hidden class="status err">¿Seguro? Se borran charlas, turnos y recuerdos de este teléfono. <button class="btn warn" id="wipeYes" style="margin-top:.4rem;width:100%">Sí, borrar todo</button></div>
+    </div>
+    <button class="btn" id="cfgClose">Listo</button>
+  </div>
+</div>
+
+<!-- Conexión de IA -->
+<div class="sheet" id="conSheet" hidden>
+  <div class="panel" role="dialog" aria-label="Conectar la inteligencia artificial">
+    <h2>Conectar la inteligencia artificial</h2>
+    <div class="note">Contigo funciona con tu propia clave. La clave queda guardada solo en este teléfono y se usa para hablar directo con la empresa que elijas.</div>
+    <div class="provs" id="provs"></div>
+    <div class="card" id="provInfo"></div>
+    <div><label class="l" for="conKey">Clave (API key)</label><input class="in" id="conKey" autocomplete="off" spellcheck="false" placeholder="Pegá la clave acá"></div>
+    <button class="btn" id="conGo">Conectar</button>
+    <div id="conStatus"></div>
+    <div id="conModelBox" hidden><label class="l" for="conModel">Modelo</label><select class="in" id="conModel"></select></div>
+    <div class="row" style="display:flex;gap:.5rem"><button class="btn alt" id="conClose" style="flex:1">Cerrar</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const clone = o => JSON.parse(JSON.stringify(o));
+const MARK = "###MEMORIA###";
+const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const ICO = {
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+  spk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>',
+  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>',
+  stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
+};
+
+/* ================= fechas ================= */
+const iso = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const hoy = () => iso(new Date());
+const parseISO = s => { const [y,m,d] = String(s).split("-").map(Number); return new Date(y, (m||1)-1, d||1); };
+const fechaLarga = s => { const d = parseISO(s); return DIAS[d.getDay()] + " " + d.getDate() + " de " + MESES[d.getMonth()]; };
+const diasHasta = s => Math.round((parseISO(s) - parseISO(hoy())) / 864e5);
+const cuando = s => { const n = diasHasta(s); return n === 0 ? "hoy" : n === 1 ? "mañana" : n === -1 ? "ayer" : n > 1 && n < 7 ? "el " + DIAS[parseISO(s).getDay()] : n < 0 ? "hace " + (-n) + " días" : "en " + n + " días"; };
+const hhmm = ts => { const d = new Date(ts); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); };
+const saludo = () => { const h = new Date().getHours(); return h < 13 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches"; };
+
+/* ================= almacenamiento (este teléfono) ================= */
+const LS = {
+  get(k){ try { return JSON.parse(localStorage.getItem("contigo:" + k)); } catch { return null; } },
+  set(k, v){ try { localStorage.setItem("contigo:" + k, JSON.stringify(v)); return true; } catch (e) { podarFotos(1); try { localStorage.setItem("contigo:" + k, JSON.stringify(v)); return true; } catch { toast("El teléfono se quedó sin lugar para guardar. Hacé una copia y borrá charlas viejas."); return false; } } },
+  del(k){ try { localStorage.removeItem("contigo:" + k); } catch {} },
+  keys(){ const out = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith("contigo:")) out.push(k.slice(8)); } } catch {} return out; }
+};
+const defMem = () => ({
+  perfil:{nombre:"",apodo:"",ciudad:"",edad:"",vive_con:"",obra_social:""},
+  personas:[], intereses:[], recuerdos:[],
+  salud:{condiciones:[], medicamentos:[], medicos:[]},
+  citas:[], pendientes:[],
+  config:{asistente:"Clara", voz:false, rate:0.95, buscar:true, autoEnviar:true, motor:"auto"}
+});
+function normMem(m){
+  m = m && typeof m === "object" ? m : {};
+  const out = Object.assign(defMem(), m);
+  out.perfil = Object.assign(defMem().perfil, m.perfil || {});
+  out.salud = Object.assign(defMem().salud, m.salud || {});
+  out.config = Object.assign(defMem().config, m.config || {});
+  for (const k of ["personas","intereses","recuerdos","citas","pendientes"]) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ["condiciones","medicamentos","medicos"]) if (!Array.isArray(out.salud[k])) out.salud[k] = [];
+  return out;
+}
+const S = { mem:normMem(LS.get("memoria")), chat:{fecha:hoy(), msgs:[]}, prev:[], sug:null, wx:null,
+  busy:false, ctl:null, img:null, imgThumb:null, tab:"charlar" };
+const saveMem = () => { LS.set("memoria", S.mem); renderAll(); };
+const saveChat = () => LS.set("chat-" + S.chat.fecha, {fecha:S.chat.fecha, msgs:S.chat.msgs});
+function chatsGuardados(){ return LS.keys().filter(k => /^chat-\d{4}-\d{2}-\d{2}$/.test(k)).map(k => LS.get(k)).filter(d => d && d.fecha).sort((a,b) => a.fecha < b.fecha ? 1 : -1); }
+function podarFotos(dias = 30){
+  const lim = iso(new Date(Date.now() - dias * 864e5));
+  for (const d of chatsGuardados()) if (d.fecha < lim && d.msgs.some(x => x.foto)) { d.msgs.forEach(x => { if (x.foto) { delete x.foto; x.fotoVieja = true; } }); try { localStorage.setItem("contigo:chat-" + d.fecha, JSON.stringify(d)); } catch {} }
+}
+
+/* ================= IA: Claude, Gemini, Groq u OpenRouter ================= */
+const PROV = {
+  gemini:{ name:"Gemini", org:"Google", free:true, search:true, keyHint:"AIza",
+    note:"Gratis con un límite diario. Busca en Google (noticias, médicos, direcciones), entiende fotos y tiene una voz muy natural. En el plan gratis Google puede usar las consultas para mejorar sus modelos.",
+    steps:['Entrá a <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com</a> con una cuenta de Google.','Tocá “Create API key”.','Copiá la clave y pegala acá abajo.'] },
+  anthropic:{ name:"Claude", org:"Anthropic", free:false, search:true, keyHint:"sk-ant-",
+    note:"La mejor calidad para charlar y explicar. Busca en internet. Se paga por uso: conviene ponerle un límite de gasto mensual.",
+    steps:['Entrá a <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.','Creá una API key y cargá crédito.','Pegá la clave acá abajo.'] },
+  groq:{ name:"Groq", org:"GroqCloud", free:true, search:true, keyHint:"gsk_",
+    note:"Gratis con límites y muy rápida. Para buscar en internet usa su modelo “compound”. Las fotos funcionan solo con sus modelos de visión.",
+    steps:['Entrá a <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a> y creá una cuenta gratis.','Tocá “Create API Key”.','Pegá la clave acá abajo.'] },
+  openrouter:{ name:"OpenRouter", org:"OpenRouter", free:true, search:true, keyHint:"sk-or-",
+    note:"Muchos modelos en un lugar, varios gratis. La búsqueda en internet necesita un poco de crédito cargado.",
+    steps:['Entrá a <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">openrouter.ai</a> y creá una cuenta.','Tocá “Create Key”.','Pegá la clave acá abajo.'] }
+};
+const cfg = () => LS.get("cfg") || {};
+const setCfg = patch => LS.set("cfg", Object.assign(cfg(), patch));
+const prov = () => cfg().provider || "";
+const keyOf = p => (cfg().keys || {})[p || prov()] || "";
+const listOf = p => (cfg().lists || {})[p || prov()] || [];
+const model = () => (cfg().models || {})[prov()] || (listOf()[0] || {}).id;
+const conectado = () => !!(prov() && keyOf());
+
+let AnthropicSDK = null;
+async function claudeClient(key){
+  if (!AnthropicSDK) AnthropicSDK = (await import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.128.0/+esm")).default;
+  return new AnthropicSDK({ apiKey:key || keyOf("anthropic"), dangerouslyAllowBrowser:true, maxRetries:2 });
+}
+async function httpErr(res){ let m = ""; try { const j = await res.json(); m = (j.error && (j.error.message || j.error)) || j.message || JSON.stringify(j); } catch {} return { status:res.status, message:String(m) }; }
+async function getJSON(url, headers){ const r = await fetch(url, { headers }); if (!r.ok) throw await httpErr(r); return r.json(); }
+const vnum = id => { const m = String(id).match(/(\d+(?:[.-]\d+)?)/); return m ? parseFloat(m[1].replace("-", ".")) : 0; };
+
+async function listModels(p, key){
+  if (p === "anthropic") {
+    const c = await claudeClient(key), out = [];
+    for await (const m of c.models.list({ limit:50 })) out.push({ id:m.id, label:m.display_name || m.id, img:true });
+    return out;
+  }
+  if (p === "gemini") {
+    const j = await getJSON("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { "x-goog-api-key":key });
+    return (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent") && /gemini/i.test(m.name) && !/(embed|tts|image|live|audio|native|robotics|computer)/i.test(m.name))
+      .map(m => ({ id:m.name.replace(/^models\//, ""), label:m.displayName || m.name, img:true }));
+  }
+  if (p === "groq") {
+    const j = await getJSON("https://api.groq.com/openai/v1/models", { Authorization:"Bearer " + key });
+    return (j.data || []).filter(m => m.active !== false && !/(whisper|guard|safety|tts|playai|orpheus|distil|safeguard|moderat)/i.test(m.id))
+      .map(m => ({ id:m.id, label:m.id, img:/(llama-4|vision|scout|maverick)/i.test(m.id), web:/compound/i.test(m.id) }));
+  }
+  if (p === "openrouter") {
+    await getJSON("https://openrouter.ai/api/v1/key", { Authorization:"Bearer " + key });
+    const j = await getJSON("https://openrouter.ai/api/v1/models");
+    const all = (j.data || []).map(m => ({ id:m.id, label:m.name || m.id,
+      img:((m.architecture && m.architecture.input_modalities) || []).includes("image"),
+      free:/:free$/.test(m.id) || (m.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0) }));
+    const ok = m => !/(guard|safety|moderat|embed|tts|whisper|rerank)/i.test(m.id + " " + m.label);
+    return [...all.filter(m => m.free && ok(m)).sort((a,b) => (b.img - a.img) || a.label.localeCompare(b.label)),
+            ...all.filter(m => !m.free && ok(m) && /^(anthropic|openai|google)\//.test(m.id)).sort((a,b) => a.label.localeCompare(b.label))];
+  }
+  return [];
+}
+function defaultModel(p, list){
+  const ids = list.map(m => m.id), has = id => ids.includes(id);
+  if (p === "anthropic") return has("claude-opus-5-5") ? "claude-opus-5-5" : (ids.find(i => /sonnet/.test(i)) || ids[0]);
+  if (p === "gemini") { const f = ids.filter(i => /flash/.test(i) && !/(lite|preview|exp|thinking)/.test(i)).sort((a,b) => vnum(b) - vnum(a)); return f[0] || ids.find(i => /flash/.test(i)) || ids[0]; }
+  if (p === "groq") { const chat = list.filter(m => !m.web).map(m => m.id); return chat.includes("llama-3.3-70b-versatile") ? "llama-3.3-70b-versatile" : (chat.find(i => /versatile|gpt-oss-120b/.test(i)) || chat[0]); }
+  if (p === "openrouter") { const f = list.filter(m => m.free); return ((f.find(m => m.img && /(gemini|llama|qwen|gemma)/i.test(m.id)) || f.find(m => m.img) || f[0] || list[0]) || {}).id; }
+  return ids[0];
+}
+function visionModel(){
+  const m = model(), list = listOf(), cur = list.find(x => x.id === m);
+  if (!cur || cur.img) return m;
+  const alt = list.find(x => x.img);
+  if (!alt) throw { code:"no_vision" };
+  return alt.id;
+}
+async function readSSE(res, onData, signal){
+  const rd = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+  for (;;) {
+    if (signal && signal.aborted) { try { rd.cancel(); } catch {} throw { code:"cancelled" }; }
+    const { done, value } = await rd.read(); if (done) break;
+    buf += dec.decode(value, { stream:true }); let i;
+    while ((i = buf.indexOf("\n")) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith("data:")) continue; const d = line.slice(5).trim(); if (d === "[DONE]") return;
+      try { onData(JSON.parse(d)); } catch {} }
+  }
+}
+const textOf = r => (r.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+const PIDE_WEB = /(busc|averigu|noticia|diario|pas[oó] hoy|clima|pron[oó]stico|d[oó]nde (queda|hay|est[aá])|direcci[oó]n|tel[eé]fono de|horario|farmacia|m[eé]dic|doctor|especialista|cl[ií]nica|hospital|turno|plomer|electricist|gasista|cerrajer|t[eé]cnico|precio|cu[aá]nto (sale|cuesta)|partido|resultado|jubilaci[oó]n|anses|pami|feriado|tr[aá]mite)/i;
+
+// Una función para cualquier proveedor. turns: [{role, text, image?{type,data}}]. Devuelve {text, fuentes}
+async function llm({ system, turns, onText, search = false, json = false, max = 3000, signal }){
+  const p = prov(); if (!conectado()) throw { code:"sin_conexion" };
+  const hasImg = turns.some(t => t.image), m = hasImg ? visionModel() : model();
+  const fuentes = [], addSrc = (u, t) => { if (u && !fuentes.some(f => f.u === u) && fuentes.length < 5) fuentes.push({ u, t:t || u }); };
+  if (p === "anthropic") {
+    const c = await claudeClient();
+    let messages = turns.map(t => ({ role:t.role, content: t.image ? [{ type:"image", source:{ type:"base64", media_type:t.image.type, data:t.image.data } }, { type:"text", text:t.text }] : t.text }));
+    const params = { model:m, max_tokens:Math.max(max, 4000), system, messages };
+    if (/(opus-5|opus-4-[5678]|sonnet-5|sonnet-4-6|fable|haiku-5)/.test(m)) params.output_config = { effort:"low" };
+    if (search) params.tools = [{ type:/(opus-5|opus-4-[678]|sonnet-5|sonnet-4-6)/.test(m) ? "web_search_20260209" : "web_search_20250305", name:"web_search", max_uses:3,
+      user_location:{ type:"approximate", country:"AR", timezone:"America/Argentina/Buenos_Aires", ...(S.mem.perfil.ciudad ? { city:S.mem.perfil.ciudad } : {}) } }];
+    const conFallback = /^claude-(opus-5|fable-5-1|sonnet-5-5)/.test(m) && !S.sinFallback;
+    let acc = "";
+    for (let vuelta = 0; vuelta < 4; vuelta++) {
+      const req = { ...params, messages };
+      const run = async fb => {
+        const st = fb ? c.beta.messages.stream({ ...req, betas:["server-side-fallback-2026-07-01"], fallbacks:"default" }, { signal }) : c.messages.stream(req, { signal });
+        for await (const ev of st) if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") { acc += ev.delta.text; onText && onText(acc); }
+        return st.finalMessage();
+      };
+      let fin;
+      try { fin = await run(conFallback); }
+      catch (e) { if (conFallback && e && e.status === 400 && /fallback/i.test(String(e.message))) { S.sinFallback = true; fin = await run(false); } else throw e; }
+      if (fin.stop_reason === "refusal") throw { code:"refusal" };
+      for (const b of fin.content || []) {
+        if (b.type === "text" && Array.isArray(b.citations)) b.citations.forEach(ci => addSrc(ci.url, ci.title));
+        if (b.type === "web_search_tool_result" && Array.isArray(b.content)) b.content.slice(0, 3).forEach(r => addSrc(r.url, r.title));
+      }
+      if (fin.stop_reason !== "pause_turn") return { text:acc || textOf(fin), fuentes };
+      messages = [...messages, { role:"assistant", content:fin.content }];
+    }
+    return { text:acc, fuentes };
+  }
+  if (p === "gemini") {
+    const body = { systemInstruction:{ parts:[{ text:system }] },
+      contents: turns.map(t => ({ role:t.role === "assistant" ? "model" : "user", parts:[ ...(t.image ? [{ inline_data:{ mime_type:t.image.type, data:t.image.data } }] : []), { text:t.text } ] })),
+      generationConfig:{ maxOutputTokens:Math.max(max, 8192), ...(json ? { responseMimeType:"application/json" } : {}) } };
+    if (search && !json) body.tools = [{ google_search:{} }];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`;
+    const res = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json", "x-goog-api-key":keyOf() }, body:JSON.stringify(body), signal });
+    if (!res.ok) throw await httpErr(res);
+    let acc = "";
+    await readSSE(res, j => {
+      if (j.promptFeedback && j.promptFeedback.blockReason) throw { code:"refusal" };
+      const cand = (j.candidates || [])[0] || {};
+      const t = ((cand.content || {}).parts || []).map(x => x.thought ? "" : (x.text || "")).join("");
+      if (t) { acc += t; onText && onText(acc); }
+      ((cand.groundingMetadata || {}).groundingChunks || []).forEach(g => g.web && addSrc(g.web.uri, g.web.title));
+    }, signal);
+    return { text:acc, fuentes };
+  }
+  // Groq y OpenRouter: mismo formato de chat
+  const url = p === "groq" ? "https://api.groq.com/openai/v1/chat/completions" : "https://openrouter.ai/api/v1/chat/completions";
+  const headers = { "Content-Type":"application/json", Authorization:"Bearer " + keyOf() };
+  if (p === "openrouter") { headers["X-Title"] = "Contigo"; headers["HTTP-Referer"] = location.origin; }
+  const messages = [{ role:"system", content:system }, ...turns.map(t => ({ role:t.role,
+    content: t.image ? [{ type:"text", text:t.text }, { type:"image_url", image_url:{ url:`data:${t.image.type};base64,${t.image.data}` } }] : t.text }))];
+  let mm = m;
+  const webGroq = p === "groq" && search && !hasImg && !json ? (listOf().find(x => x.web && /compound$/.test(x.id)) || listOf().find(x => x.web)) : null;
+  if (webGroq) mm = webGroq.id;
+  const body = { model:mm, messages, max_tokens:max, stream:true };
+  if (json && p === "groq" && !hasImg && !webGroq) body.response_format = { type:"json_object" };
+  if (p === "openrouter" && search && !json && !S.sinWebOR) body.plugins = [{ id:"web", max_results:3 }];
+  let res = await fetch(url, { method:"POST", headers, body:JSON.stringify(body), signal });
+  if (!res.ok && p === "openrouter" && body.plugins) { S.sinWebOR = true; delete body.plugins; res = await fetch(url, { method:"POST", headers, body:JSON.stringify(body), signal }); }
+  if (!res.ok) throw await httpErr(res);
+  let acc = "";
+  await readSSE(res, j => {
+    const ch = (j.choices || [])[0] || {}, d = ch.delta || ch.message || {};
+    if (d.content) { acc += d.content; onText && onText(acc); }
+    (d.annotations || []).forEach(a => a.type === "url_citation" && a.url_citation && addSrc(a.url_citation.url, a.url_citation.title));
+  }, signal);
+  return { text:acc, fuentes };
+}
+function parseJSON(t){
+  const s = String(t).replace(/```(?:json)?/gi, ""), a = s.search(/[[{]/), b = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"));
+  if (a < 0 || b < a) throw { code:"invalid_json" };
+  try { return JSON.parse(s.slice(a, b + 1)); } catch { throw { code:"invalid_json" }; }
+}
+function aiErr(e){
+  const st = e && e.status, msg = String(e && e.message || ""), pn = (PROV[prov()] || {}).name || "la IA";
+  if (e && e.code === "cancelled" || (e && e.name === "AbortError") || /abort/i.test(msg)) return "(Lo dejé acá.)";
+  if (e && e.code === "sin_conexion") return "Primero hay que conectar la inteligencia artificial. Tocá el engranaje de arriba → Cambiar conexión.";
+  if (e && e.code === "refusal") return "De eso prefiero no hablar. ¿Te ayudo con otra cosa?";
+  if (e && e.code === "no_vision") return "El modelo elegido no puede ver fotos. Elegí otro en Ajustes → Cambiar conexión.";
+  if (st === 401 || st === 403) return `La clave de ${pn} no funciona. Revisala en Ajustes → Cambiar conexión.`;
+  if (st === 429) return `${pn} está saturada o se llegó al límite de hoy. Probá de nuevo en un rato.`;
+  if (st === 402 || /credit|balance|billing|quota/i.test(msg)) return `A la cuenta de ${pn} le falta crédito o se llegó al límite.`;
+  if (!navigator.onLine) return "No hay internet en este momento. Probá de nuevo cuando vuelva la conexión.";
+  return "Se cortó la conexión. Tocá enviar de nuevo en un ratito.";
+}
+
+/* ================= voz ================= */
+const audio = new Audio(); audio.preload = "auto";
+const SILENCIO = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA=";
+function desbloquearAudio(){ try { if (audio.dataset.ok) return; audio.src = SILENCIO; const p = audio.play(); if (p && p.then) p.then(() => { audio.dataset.ok = "1"; }).catch(() => {}); } catch {} }
+function pararVoz(){ try { speechSynthesis.cancel(); } catch {} try { audio.pause(); } catch {} }
+function limpiarVoz(t){
+  return String(t).replace(/https?:\/\/\S+/g, "").replace(/\*\*?|__|#+ /g, "").replace(/^\s*[-•]\s*/gm, "")
+    .replace(/(\d{1,2}):(\d{2})/g, (m, h, mi) => mi === "00" ? h + " horas" : h + " y " + mi)
+    .replace(/\bDr\.\s/g, "doctor ").replace(/\bDra\.\s/g, "doctora ").replace(/°C?/g, " grados")
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").replace(/\s+/g, " ").trim();
+}
+function pcmAWav(b64, rate){
+  const bin = atob(b64), n = bin.length, buf = new ArrayBuffer(44 + n), v = new DataView(buf), w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0,"RIFF"); v.setUint32(4, 36 + n, true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,rate,true); v.setUint32(28,rate*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,"data"); v.setUint32(40,n,true);
+  const u8 = new Uint8Array(buf, 44); for (let i = 0; i < n; i++) u8[i] = bin.charCodeAt(i);
+  return new Blob([buf], { type:"audio/wav" });
+}
+async function vozGemini(texto){
+  const key = keyOf("gemini"); if (!key) throw new Error("sin-gemini");
+  let m = cfg().ttsModel;
+  if (!m) { const j = await getJSON("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { "x-goog-api-key":key });
+    const ids = (j.models || []).filter(x => /tts/i.test(x.name) && (x.supportedGenerationMethods || []).includes("generateContent")).map(x => x.name.replace(/^models\//, ""));
+    m = ids.find(i => /flash/.test(i)) || ids[0]; if (!m) throw new Error("sin-tts"); setCfg({ ttsModel:m }); }
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, { method:"POST", headers:{ "Content-Type":"application/json", "x-goog-api-key":key },
+    body:JSON.stringify({ contents:[{ parts:[{ text:"Leé esto en español rioplatense, con voz cálida, clara y pausada, como alguien de confianza que acompaña a una persona mayor: " + texto }] }],
+      generationConfig:{ responseModalities:["AUDIO"], speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName:"Sulafat" } } } } }) });
+  if (!r.ok) { if (r.status === 404) setCfg({ ttsModel:null }); throw new Error("gemini-" + r.status); }
+  const j = await r.json(), part = (((j.candidates || [])[0] || {}).content || {}).parts?.find(x => x.inlineData || x.inline_data);
+  const d = part && (part.inlineData || part.inline_data); if (!d || !d.data) throw new Error("vacio");
+  const rate = Number(((d.mimeType || d.mime_type || "").match(/rate=(\d+)/) || [])[1]) || 24000;
+  audio.src = URL.createObjectURL(pcmAWav(d.data, rate)); audio.playbackRate = Number(S.mem.config.rate) || 0.95;
+  await audio.play();
+}
+function mejorVoz(){
+  let vs = []; try { vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang)); } catch {}
+  return vs.find(v => /es-AR/i.test(v.lang)) || vs.find(v => /natural|google|online/i.test(v.name)) || vs.find(v => /es-(US|419|MX)/i.test(v.lang)) || vs[0] || null;
+}
+try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); } catch {}
+function vozTelefono(texto){
+  if (!("speechSynthesis" in window)) { toast("Este teléfono no puede leer en voz alta."); return; }
+  try {
+    speechSynthesis.cancel();
+    const partes = (texto.match(/[^.!?…]+[.!?…]*/g) || [texto]).map(f => f.trim()).filter(Boolean);
+    const v = mejorVoz(), rate = Number(S.mem.config.rate) || 0.95;
+    setTimeout(() => { partes.forEach(f => { const u = new SpeechSynthesisUtterance(f); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "es-AR"; u.rate = rate; speechSynthesis.speak(u); }); }, 60);
+  } catch { toast("No pude leer en voz alta."); }
+}
+function hablar(t){
+  const texto = limpiarVoz(t); if (!texto) return;
+  pararVoz();
+  if (keyOf("gemini") && S.mem.config.motor !== "sistema") vozGemini(texto).catch(() => vozTelefono(texto));
+  else vozTelefono(texto);
+}
+
+/* ================= dictado ================= */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, dictando = false, dictBase = "";
+function dictar(){
+  if (!SR) return;
+  if (dictando) { try { rec.stop(); } catch {} return; }
+  pararVoz(); desbloquearAudio();
+  rec = new SR(); rec.lang = "es-AR"; rec.interimResults = true; rec.continuous = false;
+  dictBase = $("#box").value.trim(); let final = "";
+  rec.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript; }
+    $("#box").value = (dictBase ? dictBase + " " : "") + final + interim; autosize(); };
+  rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Hay que permitir el micrófono para poder hablar."); else if (e.error === "no-speech") toast("No escuché nada. Probá de nuevo."); };
+  rec.onend = () => { dictando = false; $("#micBtn").classList.remove("on"); $("#micBtn").setAttribute("aria-label", "Hablar");
+    if (final.trim() && S.mem.config.autoEnviar) enviar($("#box").value); };
+  try { rec.start(); dictando = true; $("#micBtn").classList.add("on"); $("#micBtn").setAttribute("aria-label", "Dejar de escuchar"); } catch { toast("No pude usar el micrófono."); }
+}
+
+/* ================= clima (Open-Meteo, sin clave) ================= */
+const WX = {0:"despejado",1:"casi despejado",2:"algo nublado",3:"nublado",45:"con niebla",48:"con niebla",51:"llovizna",53:"llovizna",55:"llovizna fuerte",61:"lluvia débil",63:"lluvia",65:"lluvia fuerte",66:"lluvia helada",67:"lluvia helada",71:"nieve débil",73:"nieve",75:"nieve fuerte",80:"chaparrones",81:"chaparrones",82:"chaparrones fuertes",85:"nevadas",86:"nevadas",95:"tormenta",96:"tormenta con granizo",99:"tormenta con granizo"};
+async function cargarClima(){
+  const ciudad = (S.mem.perfil.ciudad || "").trim(); if (!ciudad) { S.wx = null; return; }
+  const c = LS.get("clima");
+  if (c && c.ciudad === ciudad && Date.now() - c.ts < 3600e3) { S.wx = c; return; }
+  try {
+    let geo = c && c.ciudad === ciudad ? c.geo : null;
+    if (!geo) { const g = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=5&language=es&name=" + encodeURIComponent(ciudad));
+      const r = (g.results || []).find(x => x.country_code === "AR") || (g.results || [])[0]; if (!r) { S.wx = null; return; }
+      geo = { lat:r.latitude, lon:r.longitude, nombre:r.name }; }
+    const f = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=2`);
+    S.wx = { ciudad, geo, ts:Date.now(), t:Math.round(f.current.temperature_2m), code:f.current.weather_code,
+      max:Math.round(f.daily.temperature_2m_max[0]), min:Math.round(f.daily.temperature_2m_min[0]), llu:f.daily.precipitation_probability_max[0],
+      man:{ max:Math.round(f.daily.temperature_2m_max[1]), min:Math.round(f.daily.temperature_2m_min[1]), llu:f.daily.precipitation_probability_max[1], code:f.daily.weather_code[1] } };
+    LS.set("clima", S.wx);
+  } catch (e) { console.warn("clima", e); }
+}
+const climaTxt = () => S.wx ? `En ${S.wx.geo.nombre} ahora hay ${S.wx.t}°, ${WX[S.wx.code] || ""}; hoy máxima ${S.wx.max}° y mínima ${S.wx.min}°, probabilidad de lluvia ${S.wx.llu ?? "?"}%. Mañana: ${WX[S.wx.man.code] || ""}, máxima ${S.wx.man.max}°, mínima ${S.wx.man.min}°, lluvia ${S.wx.man.llu ?? "?"}%.` : "";
+
+/* ================= texto de la IA a HTML ================= */
+function md(t){
+  const lines = esc(t).split(/\n/); let html = "", ul = false;
+  for (let ln of lines) {
+    ln = ln.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    if (/^\s*[-•*]\s+/.test(ln)) { if (!ul) { html += "<ul>"; ul = true; } html += "<li>" + ln.replace(/^\s*[-•*]\s+/, "") + "</li>"; continue; }
+    if (ul) { html += "</ul>"; ul = false; }
+    if (ln.trim()) html += "<p>" + ln.replace(/^#+\s*/, "") + "</p>";
+  }
+  return html + (ul ? "</ul>" : "");
+}
+const visible = t => { const i = t.indexOf(MARK); const v = i >= 0 ? t.slice(0, i) : t; return v.replace(/#{1,3}[A-Z]*\s*$/, "").trim(); };
+
+/* ================= prompt ================= */
+function memParaIA(){
+  const m = S.mem;
+  return JSON.stringify({
+    perfil:m.perfil, personas:m.personas.map(p => ({nombre:p.nombre, relacion:p.relacion, tel:p.tel, nota:p.nota})),
+    intereses:m.intereses, recuerdos:m.recuerdos.slice(-60).map(r => r.texto),
+    salud:{condiciones:m.salud.condiciones, medicamentos:m.salud.medicamentos.map(x => ({id:x.id, nombre:x.nombre, dosis:x.dosis, horario:x.horario})), medicos:m.salud.medicos.map(x => ({nombre:x.nombre, especialidad:x.especialidad, tel:x.tel, lugar:x.lugar}))},
+    citas_proximas:m.citas.filter(c => !c.hecha && diasHasta(c.fecha) >= -1).map(c => ({id:c.id, titulo:c.titulo, fecha:c.fecha, hora:c.hora, lugar:c.lugar, nota:c.nota})),
+    pendientes:m.pendientes.filter(p => p.estado !== "hecho").map(p => ({id:p.id, texto:p.texto, tipo:p.tipo, desde:p.creado}))
+  });
+}
+function reglas(conWeb){
+  const n = S.mem.config.asistente || "Clara";
+  const quien = S.mem.perfil.apodo || S.mem.perfil.nombre || "";
+  const ahora = new Date();
+  const web = conWeb
+    ? `- Podés BUSCAR EN INTERNET. Usalo cuando pida algo actual o del mundo real: noticias del día (resumí 3 a 5 de medios argentinos confiables, en palabras simples, sin alarmar), médicos o especialistas cerca de ${S.mem.perfil.ciudad || "donde vive"} (con dirección y teléfono si aparecen, y aclarando que conviene confirmar llamando; si tiene PAMI, mencioná la cartilla de PAMI), técnicos o servicios (plomero, gasista, cerrajero), farmacias de turno, trámites (ANSES, PAMI), resultados deportivos, feriados. Nombrá de dónde sacaste el dato. No inventes teléfonos ni direcciones.
+- No podés llamar por teléfono ni sacar turnos por la persona: decile a quién llamar, qué decir y qué llevar (DNI, credencial, estudios), y ofrecé anotarlo.`
+    : `- Ahora no podés buscar en internet. Si pide noticias o datos actuales, decilo con naturalidad y ofrecé que te pegue el texto o te mande una foto del diario. Para médicos o técnicos, decí qué especialista conviene, a quién llamar, qué decir y qué llevar, y ofrecé anotarlo como pendiente.`;
+  return `Sos ${n}, una asistente de compañía y ayuda para una persona mayor${quien ? " a quien le decís " + quien : ""}. Hablás en español rioplatense, con voseo, cálida, respetuosa y paciente, como una sobrina atenta que sabe mucho. Hoy es ${fechaLarga(hoy())} de ${ahora.getFullYear()} (${hoy()}), son las ${hhmm(ahora)}.${S.wx ? " Clima: " + climaTxt() : ""}
+
+CÓMO RESPONDER
+- Frases cortas y claras, sin palabras técnicas ni en inglés. Una idea por vez. En general menos de 120 palabras, salvo que pida más detalle.
+- Si das pasos o una lista, usá guiones cortos. No uses títulos, tablas ni emojis.
+- Si algo no está claro, hacé UNA sola pregunta.
+- Usá lo que ya sabés de la persona (memoria abajo): su nombre, su gente, sus remedios, sus turnos. Si viene al caso, recordale un turno o pendiente cercano.
+${web}
+- Si manda una foto (receta, caja de remedio, factura, carta, diario), explicá qué es y qué hay que hacer, en palabras simples.
+- Salud: no diagnosticás ni cambiás dosis; sugerís consultar al médico. Si cuenta dolor de pecho, falta de aire, cara torcida, no poder mover un brazo, confusión repentina, una caída con golpe en la cabeza o sangrado fuerte: decile que llame YA al 107 o al 911 y avise a un familiar.
+- Estafas: si menciona llamadas o mensajes pidiendo claves, códigos, datos del banco o plata para un familiar en apuros, alertá con calma: que corte y llame a un familiar. Nunca pidas claves.
+- De vez en cuando, si la charla lo permite, proponé un tema que le pueda gustar según sus intereses, o una actividad suave (caminar, llamar a alguien querido, tomar agua).
+
+MEMORIA (lo que ya sabés):
+${memParaIA()}
+
+AL FINAL de cada respuesta escribí en una línea aparte ${MARK} y después un arreglo JSON con lo que hay que guardar o cambiar en la memoria (o [] si no hay nada). Guardá solo datos nuevos y útiles que la persona dijo o pidió, sin repetir lo que ya está. Operaciones posibles:
+{"op":"cita","titulo":"Cardiólogo Dr. Pérez","fecha":"AAAA-MM-DD","hora":"HH:MM","lugar":"...","nota":"llevar estudios"}  (turnos médicos, trámites, salidas con día; calculá la fecha real)
+{"op":"cita_hecha","id":"..."}   {"op":"cita_cancelar","id":"..."}
+{"op":"pendiente","texto":"Buscar un traumatólogo para la rodilla","tipo":"medico|arreglo|tramite|compra|llamar|otro"}  (cosas para hacer sin día fijo)
+{"op":"pendiente_hecho","id":"..."}
+{"op":"perfil","campo":"nombre|apodo|ciudad|edad|vive_con|obra_social","valor":"..."}
+{"op":"persona","nombre":"Laura","relacion":"hija","tel":"...","nota":"vive en Córdoba"}
+{"op":"interes","texto":"jardinería"}
+{"op":"recuerdo","texto":"Le gusta el café sin azúcar; su perro se llama Toby"}
+{"op":"medicamento","nombre":"Enalapril","dosis":"10 mg","horario":"mañana y noche"}   {"op":"medicamento_quitar","id":"..."}
+{"op":"medico","nombre":"Dra. Gómez","especialidad":"clínica","tel":"...","lugar":"..."}  (también los que encuentres buscando y la persona quiera guardar)
+{"op":"condicion","texto":"presión alta"}`;
+}
+
+/* ================= aplicar cambios de memoria ================= */
+const fmtCita = c => c.titulo + " · " + (c.fecha ? cuando(c.fecha) + " " + parseISO(c.fecha).getDate() + "/" + (parseISO(c.fecha).getMonth() + 1) : "") + (c.hora ? " " + c.hora : "");
+function aplicar(ops){
+  const m = S.mem, notas = [];
+  const s = v => String(v ?? "").trim().slice(0, 300);
+  for (const o of Array.isArray(ops) ? ops : []) {
+    if (!o || typeof o !== "object") continue;
+    try {
+      switch (o.op) {
+        case "cita": { if (!s(o.titulo)) break; const c = {id:nid(), titulo:s(o.titulo), fecha:/^\d{4}-\d{2}-\d{2}$/.test(o.fecha) ? o.fecha : "", hora:s(o.hora).slice(0,5), lugar:s(o.lugar), nota:s(o.nota), hecha:false};
+          if (!c.fecha) { m.pendientes.push({id:c.id, texto:c.titulo, tipo:"otro", estado:"abierto", creado:hoy()}); notas.push("Anotado en pendientes: " + c.titulo); break; }
+          m.citas.push(c); notas.push("Turno anotado: " + fmtCita(c)); break; }
+        case "cita_hecha": case "cita_cancelar": { const c = m.citas.find(x => x.id === o.id); if (!c) break;
+          if (o.op === "cita_hecha") { c.hecha = true; notas.push("Listo: " + c.titulo); } else { m.citas = m.citas.filter(x => x !== c); notas.push("Turno borrado: " + c.titulo); } break; }
+        case "pendiente": { if (!s(o.texto)) break; m.pendientes.push({id:nid(), texto:s(o.texto), tipo:s(o.tipo) || "otro", estado:"abierto", creado:hoy()}); notas.push("Pendiente: " + s(o.texto)); break; }
+        case "pendiente_hecho": { const p = m.pendientes.find(x => x.id === o.id); if (p) { p.estado = "hecho"; p.hecho = hoy(); notas.push("Hecho: " + p.texto); } break; }
+        case "perfil": { if (o.campo in m.perfil && s(o.valor)) { m.perfil[o.campo] = s(o.valor); notas.push("Me acuerdo: " + s(o.valor)); if (o.campo === "ciudad") cargarClima().then(renderWelcome); } break; }
+        case "persona": { if (!s(o.nombre)) break; const p = m.personas.find(x => x.nombre.toLowerCase() === s(o.nombre).toLowerCase());
+          if (p) { for (const k of ["relacion","tel","nota"]) if (s(o[k])) p[k] = s(o[k]); } else m.personas.push({id:nid(), nombre:s(o.nombre), relacion:s(o.relacion), tel:s(o.tel), nota:s(o.nota)});
+          notas.push("Guardé a " + s(o.nombre)); break; }
+        case "interes": { const t = s(o.texto); if (t && !m.intereses.some(x => x.toLowerCase() === t.toLowerCase())) { m.intereses.push(t); notas.push("Te gusta: " + t); } break; }
+        case "recuerdo": { const t = s(o.texto); if (t) { m.recuerdos.push({id:nid(), texto:t, fecha:hoy()}); notas.push("Me lo guardo"); } break; }
+        case "medicamento": { if (!s(o.nombre)) break; const x = m.salud.medicamentos.find(y => y.nombre.toLowerCase() === s(o.nombre).toLowerCase());
+          if (x) { if (s(o.dosis)) x.dosis = s(o.dosis); if (s(o.horario)) x.horario = s(o.horario); } else m.salud.medicamentos.push({id:nid(), nombre:s(o.nombre), dosis:s(o.dosis), horario:s(o.horario)});
+          notas.push("Remedio: " + s(o.nombre)); break; }
+        case "medicamento_quitar": { const n0 = m.salud.medicamentos.length; m.salud.medicamentos = m.salud.medicamentos.filter(y => y.id !== o.id); if (m.salud.medicamentos.length < n0) notas.push("Saqué un remedio de la lista"); break; }
+        case "medico": { if (!s(o.nombre) && !s(o.especialidad)) break; m.salud.medicos.push({id:nid(), nombre:s(o.nombre), especialidad:s(o.especialidad), tel:s(o.tel), lugar:s(o.lugar)}); notas.push("Médico: " + (s(o.nombre) || s(o.especialidad))); break; }
+        case "condicion": { const t = s(o.texto); if (t && !m.salud.condiciones.some(x => x.toLowerCase() === t.toLowerCase())) { m.salud.condiciones.push(t); notas.push("Para tener en cuenta: " + t); } break; }
+      }
+    } catch (e) { console.warn("op", o, e); }
+  }
+  return notas;
+}
+function parseOps(text){
+  const i = text.indexOf(MARK); if (i < 0) return [];
+  const rest = text.slice(i + MARK.length); const a = rest.indexOf("["), b = rest.lastIndexOf("]");
+  if (a < 0 || b <= a) return [];
+  try { return JSON.parse(rest.slice(a, b + 1)); } catch { return []; }
+}
+
+/* ================= chat ================= */
+function historial(){
+  const all = [];
+  for (const d of S.prev.slice().reverse()) for (const x of d.msgs || []) all.push(x);
+  for (const x of S.chat.msgs) all.push(x);
+  return all.filter(x => x.t && !x.err).slice(-36).map(x => ({ role:x.r === "me" ? "user" : "assistant", text:(x.foto || x.fotoVieja ? "[Mandó una foto] " : "") + x.t }));
+}
+function msgHTML(x, i){
+  if (x.r === "me") return `<div class="msg me">${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="Foto enviada">` : ""}${md(x.t)}<div class="time">${hhmm(x.ts)}</div></div>`;
+  const acts = (x.notas || []).map(n => `<span class="chip">${ICO.check}${esc(n)}</span>`).join("");
+  const src = (x.fuentes || []).length ? `<div class="src"><span>Fuentes:</span>${x.fuentes.map(f => `<a href="${esc(f.u)}" target="_blank" rel="noopener">${esc(f.t)}</a>`).join("")}</div>` : "";
+  return `<div class="msg ai">${x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> ${x.buscando ? "buscando…" : "pensando…"}</span>`}${x.t ? src : ""}
+    ${x.t && i >= 0 ? `<div class="acts"><button class="listen" data-say="${i}">${ICO.spk}Escuchar</button>${acts}</div>` : ""}</div>`;
+}
+function renderChat(){
+  let h = "";
+  if (!S.chat.msgs.length && S.prev[0]?.msgs?.length) {
+    h += `<div class="dayline">Lo último que hablamos, ${esc(cuando(S.prev[0].fecha))}</div>`;
+    h += S.prev[0].msgs.slice(-4).map(x => msgHTML(x, -1)).join("");
+    h += `<div class="dayline">Hoy</div>`;
+  }
+  h += S.chat.msgs.map(msgHTML).join("");
+  $("#msgs").innerHTML = h;
+  renderWelcome();
+}
+function scrollFin(){ const m = $("#main"); m.scrollTop = m.scrollHeight; }
+const calHTML = f => { const d = parseISO(f); return `<div class="cal"><div class="m">${MESES[d.getMonth()].slice(0,3)}</div><div class="d">${d.getDate()}</div></div>`; };
+function renderWelcome(){
+  const w = $("#welcome"), m = S.mem;
+  if (S.chat.msgs.length > 2) { w.innerHTML = ""; return; }
+  let h = "";
+  if (!m.perfil.nombre) {
+    h += `<div class="card sun"><h2>¡Hola! Soy ${esc(m.config.asistente)}.</h2><p>Estoy para charlar, ayudarte a acordarte de los turnos y las cosas pendientes, buscarte médicos o noticias, explicarte papeles y darte una mano con lo que necesites. Todo lo que hablemos queda guardado.</p>
+      <form class="form" id="onbForm"><div class="row"><div><label class="l" for="onbN">¿Cómo te llamás?</label><input class="in" id="onbN" autocomplete="given-name"></div><div><label class="l" for="onbC">¿En qué ciudad vivís?</label><input class="in" id="onbC" placeholder="Ej.: Mendoza"></div></div><button class="btn" type="submit">Empezar</button></form></div>`;
+  } else if (!conectado()) {
+    h += `<div class="card sun"><h2>Falta un paso</h2><p>Para que pueda responderte hay que conectar una inteligencia artificial. Lo hace una sola vez alguien de la familia, en dos minutos. Hay opciones gratis.</p><button class="btn" data-con="1">Conectar ahora</button></div>`;
+  }
+  if (S.wx) h += `<div class="card"><div class="wx"><div class="t">${S.wx.t}°</div><div class="d"><b>${esc(S.wx.geo.nombre)}: ${esc(WX[S.wx.code] || "")}</b><span>Hoy máx. ${S.wx.max}° · mín. ${S.wx.min}°${S.wx.llu != null ? " · lluvia " + S.wx.llu + "%" : ""}<br>Mañana ${esc(WX[S.wx.man.code] || "")}, máx. ${S.wx.man.max}°</span></div></div></div>`;
+  const prox = m.citas.filter(c => !c.hecha && c.fecha && diasHasta(c.fecha) >= 0).sort((a,b) => (a.fecha + a.hora) < (b.fecha + b.hora) ? -1 : 1)[0];
+  if (prox) h += `<div class="card"><h2>Tu próximo turno</h2><div class="nextcita">${calHTML(prox.fecha)}<div><b>${esc(prox.titulo)}</b><div class="note">${esc(cuando(prox.fecha))}${prox.hora ? " a las " + esc(prox.hora) : ""}${prox.lugar ? " · " + esc(prox.lugar) : ""}</div></div></div></div>`;
+  if (S.sug?.items?.length) h += `<div class="card"><h2>Ideas para hoy</h2><div class="sug">${S.sug.items.map((s,i) => `<button class="sugbtn" data-sug="${i}"><span class="k"></span><div><b>${esc(s.titulo)}</b><span>${esc(s.texto)}</span></div></button>`).join("")}</div></div>`;
+  else if (m.perfil.nombre && conectado()) h += `<button class="btn alt" id="sugBtn">Darme ideas para hoy</button>`;
+  if (m.perfil.nombre) h += `<div class="quick" aria-label="Para empezar">${["Contame las noticias de hoy","Tengo que ir al médico","Se rompió algo en casa","¿Qué tengo pendiente?","Explicame un papel o una receta","Charlemos un rato"].map(q => `<button data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>`;
+  w.innerHTML = h;
+}
+
+async function aImagen(file, lado, calidad){
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = url; });
+    const k = Math.min(1, lado / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", calidad);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function enviar(texto){
+  texto = String(texto || "").trim();
+  if (S.busy) return;
+  if (!texto && !S.img) return;
+  desbloquearAudio();
+  if (!conectado()) { abrirConexion(); return; }
+  if (!texto) texto = "¿Qué es esto y qué tengo que hacer?";
+  if (S.chat.fecha !== hoy()) { S.prev.unshift({fecha:S.chat.fecha, msgs:S.chat.msgs}); S.chat = {fecha:hoy(), msgs:[]}; }
+  const img = S.img, thumb = S.imgThumb;
+  S.img = null; S.imgThumb = null; $("#attach").hidden = true; $("#box").value = ""; $("#box").placeholder = "Escribí acá…"; autosize();
+  pararVoz();
+  const prevTurns = historial();
+  const me = {r:"me", t:texto, ts:Date.now()}; if (thumb) me.foto = thumb;
+  S.chat.msgs.push(me);
+  const p = prov(), conWeb = !!S.mem.config.buscar && !img && ((p === "anthropic" || p === "gemini") || PIDE_WEB.test(texto));
+  const ai = {r:"ai", t:"", ts:Date.now(), buscando:conWeb && PIDE_WEB.test(texto)}; S.chat.msgs.push(ai);
+  const idx = S.chat.msgs.length - 1;
+  renderChat(); scrollFin(); saveChat();
+  setBusy(true);
+  S.ctl = new AbortController();
+  const turns = [...prevTurns];
+  while (turns.length && turns[0].role === "assistant") turns.shift();
+  turns.push({ role:"user", text:(img ? "[Mandó una foto] " : "") + texto, image:img ? { type:"image/jpeg", data:img.split(",")[1] } : null });
+  try {
+    const r = await llm({ system:reglas(conWeb), turns, search:conWeb, signal:S.ctl.signal,
+      onText: t => { ai.t = visible(t); ai.buscando = false; paintLast(idx); } });
+    ai.t = visible(r.text) || "Listo.";
+    ai.fuentes = r.fuentes;
+    ai.notas = aplicar(parseOps(r.text));
+    ai.ts = Date.now();
+    if (ai.notas.length) saveMem();
+    if (S.mem.config.voz) hablar(ai.t);
+  } catch (e) {
+    console.warn(e);
+    const parcial = ai.t;
+    ai.t = (parcial ? parcial + "\n\n" : "") + aiErr(e);
+    if (!parcial && !(e && (e.code === "cancelled" || e.name === "AbortError"))) ai.err = true;
+  }
+  delete ai.buscando;
+  setBusy(false);
+  renderChat(); scrollFin();
+  saveChat();
+}
+function paintLast(idx){
+  const nodes = $("#msgs").querySelectorAll(".msg"); const n = nodes[nodes.length - 1]; if (!n) return;
+  const x = S.chat.msgs[idx];
+  n.innerHTML = x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> pensando…</span>`;
+  const m = $("#main"); if (m.scrollHeight - m.scrollTop - m.clientHeight < 160) scrollFin();
+}
+function setBusy(b){
+  S.busy = b; const s = $("#sendBtn");
+  s.classList.toggle("stop", b); s.innerHTML = b ? ICO.stop : ICO.send; s.setAttribute("aria-label", b ? "Parar" : "Enviar");
+}
+
+/* ================= ideas del día ================= */
+async function sugerir(){
+  if (!conectado()) return;
+  const b = $("#sugBtn"); if (b) { b.disabled = true; b.textContent = "Pensando ideas…"; }
+  try {
+    const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:1200, turns:[{ role:"user", text:
+`Sos ${S.mem.config.asistente}, asistente de compañía de una persona mayor (español rioplatense, voseo). Hoy es ${fechaLarga(hoy())}.${S.wx ? " " + climaTxt() : ""} Con lo que sabés de la persona, proponé 3 ideas cortas para hoy: recordar un turno o pendiente cercano, un tema de charla según sus gustos, una actividad suave acorde al clima, llamar a alguien querido, escuchar las noticias, o un cuidado de salud simple (agua, caminar, remedios). Variá los temas.
+Respondé SOLO un objeto JSON: {"ideas":[{"titulo":"máx 6 palabras","texto":"una frase corta","pedido":"lo que la persona le diría a la asistente si toca la idea, en primera persona"}]}
+MEMORIA: ${memParaIA()}` }] });
+    const j = parseJSON(r.text), items = Array.isArray(j) ? j : j.ideas;
+    if (Array.isArray(items) && items.length) { S.sug = {fecha:hoy(), items:items.slice(0,3).map(x => ({titulo:String(x.titulo||"").slice(0,60), texto:String(x.texto||"").slice(0,160), pedido:String(x.pedido||x.titulo||"").slice(0,200)}))}; LS.set("sugerencias", S.sug); }
+  } catch (e) { console.warn(e); if (b) { b.disabled = false; b.textContent = "Darme ideas para hoy"; } return; }
+  renderWelcome();
+}
+
+/* ================= otras solapas ================= */
+function renderAgenda(){
+  const m = S.mem;
+  const citas = m.citas.filter(c => !c.hecha && (!c.fecha || diasHasta(c.fecha) >= -1)).sort((a,b) => (a.fecha + a.hora) < (b.fecha + b.hora) ? -1 : 1);
+  $("#citasList").innerHTML = citas.length ? `<div class="sec">${citas.map(c => `<div class="item"><button class="check" data-cita="${c.id}" aria-label="Marcar como hecho"></button>${c.fecha ? calHTML(c.fecha) : ""}<div class="tx"><b>${esc(c.titulo)}</b><small>${c.fecha ? esc(cuando(c.fecha)) : ""}${c.hora ? " · " + esc(c.hora) + " hs" : ""}${c.lugar ? " · " + esc(c.lugar) : ""}${c.nota ? " · " + esc(c.nota) : ""}</small></div><button class="del" data-delcita="${c.id}" aria-label="Borrar turno">${ICO.del}</button></div>`).join("")}</div>`
+    : `<div class="empty">No hay turnos anotados. Contale a ${esc(m.config.asistente)} “tengo turno con el cardiólogo el jueves a las 10” y lo anota sola.</div>`;
+  const pend = m.pendientes.filter(p => p.estado !== "hecho");
+  $("#pendList").innerHTML = pend.length ? `<div class="sec">${pend.map(p => `<div class="item"><button class="check" data-pend="${p.id}" aria-label="Marcar como hecho"></button><div class="tx"><span class="tag ${esc(p.tipo)}">${esc(p.tipo)}</span>${esc(p.texto)}<small>Anotado ${esc(cuando(p.creado))}</small></div><button class="del" data-delpend="${p.id}" aria-label="Borrar">${ICO.del}</button></div>`).join("")}</div>`
+    : `<div class="empty">Nada pendiente por ahora.</div>`;
+  const hechos = [...m.pendientes.filter(p => p.estado === "hecho").map(p => ({id:p.id, t:p.texto, f:p.hecho, k:"pend"})), ...m.citas.filter(c => c.hecha || (c.fecha && diasHasta(c.fecha) < -1)).map(c => ({id:c.id, t:c.titulo, f:c.fecha, k:"cita"}))].sort((a,b) => (a.f||"") < (b.f||"") ? 1 : -1).slice(0, 40);
+  $("#doneList").innerHTML = hechos.length ? hechos.map(x => `<div class="item done"><button class="check" data-undo="${x.k}:${x.id}" aria-label="Volver a pendiente">${ICO.check}</button><div class="tx">${esc(x.t)}<small>${x.f ? esc(fechaLarga(x.f)) : ""}</small></div></div>`).join("") : `<div class="empty">Todavía nada.</div>`;
+  const n = citas.filter(c => c.fecha && diasHasta(c.fecha) <= 2).length + pend.length;
+  const bd = $("#agBadge"); bd.hidden = !n; bd.textContent = n;
+}
+const telHTML = t => t ? `Tel. <a href="tel:${esc(String(t).replace(/[^\d+]/g, ""))}">${esc(t)}</a>` : "";
+function renderSalud(){
+  const s = S.mem.salud;
+  $("#medsList").innerHTML = s.medicamentos.length ? `<div class="sec">${s.medicamentos.map(x => `<div class="item"><div class="tx"><b>${esc(x.nombre)}</b>${x.dosis ? " " + esc(x.dosis) : ""}<small>${esc(x.horario || "")}</small></div><button class="del" data-delmed="${x.id}" aria-label="Quitar remedio">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Sin remedios anotados.</div>`;
+  $("#docsList").innerHTML = s.medicos.length ? `<div class="sec">${s.medicos.map(x => `<div class="item"><div class="tx"><b>${esc(x.nombre || x.especialidad)}</b>${x.nombre && x.especialidad ? " · " + esc(x.especialidad) : ""}<small>${telHTML(x.tel)}${x.lugar ? " · " + esc(x.lugar) : ""}</small></div><button class="del" data-deldoc="${x.id}" aria-label="Quitar médico">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Sin médicos anotados. Pedile a ${esc(S.mem.config.asistente)} “buscame un cardiólogo cerca” y guardá el que te guste.</div>`;
+  $("#condList").innerHTML = s.condiciones.length ? s.condiciones.map((c,i) => `<span class="c">${esc(c)}<button data-delcond="${i}" aria-label="Quitar">✕</button></span>`).join("") : `<div class="empty">Nada anotado.</div>`;
+  if (document.activeElement !== $("#obraIn")) $("#obraIn").value = S.mem.perfil.obra_social || "";
+}
+function renderMemoria(){
+  const m = S.mem;
+  for (const [id, k] of [["pNombre","nombre"],["pApodo","apodo"],["pCiudad","ciudad"],["pEdad","edad"],["pVive","vive_con"]]) if (document.activeElement !== $("#" + id)) $("#" + id).value = m.perfil[k] || "";
+  $("#persList").innerHTML = m.personas.length ? `<div class="sec">${m.personas.map(p => `<div class="item"><div class="tx"><b>${esc(p.nombre)}</b>${p.relacion ? " · " + esc(p.relacion) : ""}<small>${telHTML(p.tel)}${p.nota ? " · " + esc(p.nota) : ""}</small></div><button class="del" data-delpers="${p.id}" aria-label="Quitar">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Todavía no sé quién es tu gente. Contámelo cuando quieras.</div>`;
+  $("#intList").innerHTML = m.intereses.length ? m.intereses.map((c,i) => `<span class="c">${esc(c)}<button data-delint="${i}" aria-label="Quitar">✕</button></span>`).join("") : `<div class="empty">Contame qué te gusta y lo voy sumando.</div>`;
+  $("#recList").innerHTML = m.recuerdos.length ? `<div class="sec">${m.recuerdos.slice().reverse().map(r => `<div class="item"><div class="tx">${esc(r.texto)}<small>${esc(fechaLarga(r.fecha))}</small></div><button class="del" data-delrec="${r.id}" aria-label="Olvidar">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">A medida que charlemos, voy guardando lo importante acá.</div>`;
+  renderHist();
+}
+function renderHeader(){
+  const n = S.mem.perfil.apodo || S.mem.perfil.nombre;
+  $("#hola").textContent = saludo() + (n ? ", " + n : "");
+  const d = new Date(); $("#hoyTxt").textContent = DIAS[d.getDay()].replace(/^./, c => c.toUpperCase()) + " " + d.getDate() + " de " + MESES[d.getMonth()] + " de " + d.getFullYear();
+}
+function renderAll(){ renderHeader(); renderChat(); renderAgenda(); renderSalud(); renderMemoria(); }
+
+/* ================= historial ================= */
+function renderHist(dia){
+  const el = $("#histList"); const hist = chatsGuardados();
+  const q = $("#histQ").value.trim().toLowerCase();
+  if (dia) { const d = hist.find(x => x.fecha === dia); el.innerHTML = `<button class="btn alt" data-hback="1">Volver a la lista</button><div class="dayline" style="align-self:flex-start">${esc(fechaLarga(dia))}</div>` + (d?.msgs || []).map(x => `<div class="msg ${x.r === "me" ? "me" : "ai"}" style="max-width:100%">${md(x.t)}<div class="time">${hhmm(x.ts)}</div></div>`).join(""); return; }
+  if (q) {
+    const hits = []; for (const d of hist) for (const x of d.msgs || []) if ((x.t || "").toLowerCase().includes(q)) hits.push({f:d.fecha, x});
+    const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    el.innerHTML = hits.length ? hits.slice(0, 50).map(h => { const t = h.x.t; const i = t.toLowerCase().indexOf(q); const frag = (i > 60 ? "…" : "") + t.slice(Math.max(0, i - 60), i + q.length + 90);
+      return `<button class="hday found" data-hday="${h.f}"><small>${esc(fechaLarga(h.f))} · ${h.x.r === "me" ? "vos" : esc(S.mem.config.asistente)}</small>${esc(frag).replace(rx, m => "<mark>" + m + "</mark>")}</button>`; }).join("") : `<div class="empty">No encontré “${esc(q)}” en las charlas.</div>`;
+    return;
+  }
+  el.innerHTML = hist.length ? hist.slice(0, 120).map(d => `<button class="hday" data-hday="${d.fecha}"><b>${esc(fechaLarga(d.fecha).replace(/^./, c => c.toUpperCase()))}</b><span>${esc((d.msgs || []).find(x => x.r === "me")?.t || "")}</span></button>`).join("") : `<div class="empty">Todavía no hay charlas guardadas.</div>`;
+}
+
+/* ================= resumen para la familia ================= */
+async function resumenFamilia(){
+  if (!conectado()) { abrirConexion(); return; }
+  const b = $("#famBtn"); b.disabled = true; b.textContent = "Armando…";
+  const ult = historial().slice(-24).map(x => (x.role === "user" ? "Persona: " : "Asistente: ") + x.text.slice(0, 400)).join("\n");
+  try {
+    const r = await llm({ system:"Escribís resúmenes breves y cálidos en español rioplatense.", max:1500, turns:[{ role:"user", text:
+      `Armá un resumen breve (máx 150 palabras), cálido y claro, para que un familiar sepa cómo viene ${S.mem.perfil.apodo || S.mem.perfil.nombre || "la persona"}: próximos turnos con fecha, pendientes importantes, remedios si hay cambios, y algo de su ánimo o lo que contó. Sin títulos; podés usar guiones. Hoy es ${fechaLarga(hoy())}.\nMEMORIA: ${memParaIA()}\nÚLTIMAS CHARLAS:\n${ult}` }] });
+    $("#famOut").innerHTML = `<div class="out" id="famTxt">${esc(r.text)}</div><div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem"><button class="btn" id="famCopy" style="flex:1">Copiar</button><a class="btn alt" style="flex:1;text-align:center;text-decoration:none;display:grid;place-items:center" href="https://wa.me/?text=${encodeURIComponent(r.text)}" target="_blank" rel="noopener">Mandar por WhatsApp</a></div>`;
+  } catch (e) { toast(aiErr(e)); }
+  b.disabled = false; b.textContent = "Armar resumen de nuevo";
+}
+
+/* ================= conexión ================= */
+let pick = "gemini";
+function abrirConexion(){
+  pick = prov() || "gemini";
+  renderConexion(); $("#cfgSheet").hidden = true; $("#conSheet").hidden = false;
+}
+function renderConexion(){
+  $("#provs").innerHTML = Object.entries(PROV).map(([id, p]) => `<button class="prov" data-prov="${id}" aria-pressed="${id === pick}"><b>${p.name}${p.free ? '<span class="free">gratis</span>' : ""}</b><span>${p.org}${keyOf(id) ? " · conectada" : ""}</span></button>`).join("");
+  const p = PROV[pick];
+  $("#provInfo").innerHTML = `<p class="note" style="margin-top:0">${p.note}</p><ol class="steps">${p.steps.map(s => `<li>${s}</li>`).join("")}</ol>`;
+  $("#conKey").value = keyOf(pick); $("#conKey").placeholder = "Pegá la clave acá (empieza con " + p.keyHint + "…)";
+  const list = listOf(pick), cur = (cfg().models || {})[pick];
+  $("#conModelBox").hidden = !list.length;
+  $("#conModel").innerHTML = list.filter(m => !m.web).map(m => `<option value="${esc(m.id)}" ${m.id === cur ? "selected" : ""}>${esc(m.label)}${m.free ? " · gratis" : ""}${m.img ? " · fotos" : ""}</option>`).join("");
+  $("#conStatus").innerHTML = prov() === pick && keyOf(pick) ? `<div class="status ok">Conectada a ${p.name}. Ya podés charlar.</div>` : "";
+}
+async function conectar(){
+  const key = $("#conKey").value.trim(); if (!key) { $("#conStatus").innerHTML = `<div class="status err">Falta pegar la clave.</div>`; return; }
+  const b = $("#conGo"); b.disabled = true; b.textContent = "Probando la clave…";
+  try {
+    const list = await listModels(pick, key);
+    if (!list.length) throw { message:"sin modelos" };
+    const c = cfg(); const keys = Object.assign({}, c.keys, { [pick]:key }), lists = Object.assign({}, c.lists, { [pick]:list });
+    const models = Object.assign({}, c.models); if (!models[pick] || !list.some(m => m.id === models[pick])) models[pick] = defaultModel(pick, list);
+    setCfg({ provider:pick, keys, lists, models });
+    renderConexion(); renderWelcome(); toast("¡Conectada!");
+  } catch (e) {
+    console.warn(e);
+    $("#conStatus").innerHTML = `<div class="status err">${e && (e.status === 401 || e.status === 403 || e.status === 400) ? "La clave no funciona. Revisá que esté bien copiada, completa." : "No pude comprobar la clave. Revisá la conexión a internet y probá de nuevo."}</div>`;
+  }
+  b.disabled = false; b.textContent = "Conectar";
+}
+function renderConNow(){
+  const p = PROV[prov()];
+  $("#conNow").innerHTML = conectado() ? `<b>${p.name}</b> <span class="note">· ${esc(model() || "")}</span>` : `<span class="note">Sin conectar.</span>`;
+  $("#vozMotorBox").hidden = !keyOf("gemini");
+}
+
+/* ================= copia de seguridad ================= */
+function guardarCopia(){
+  const data = { app:"contigo", version:1, fecha:new Date().toISOString(), memoria:S.mem, chats:chatsGuardados() };
+  const blob = new Blob([JSON.stringify(data)], { type:"application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "contigo-copia-" + hoy() + ".json";
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast("Copia guardada en Descargas.");
+}
+async function recuperarCopia(file){
+  try {
+    const d = JSON.parse(await file.text()); if (d.app !== "contigo" || !d.memoria) throw 0;
+    S.mem = normMem(d.memoria); LS.set("memoria", S.mem);
+    for (const c of d.chats || []) if (c && /^\d{4}-\d{2}-\d{2}$/.test(c.fecha)) LS.set("chat-" + c.fecha, c);
+    cargarDatos(); renderAll(); toast("Copia recuperada.");
+  } catch { toast("Ese archivo no es una copia de Contigo."); }
+}
+
+/* ================= utilidades UI ================= */
+let tt; function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => el.hidden = true, 3500); }
+function autosize(){ const b = $("#box"); b.style.height = "auto"; b.style.height = Math.min(b.scrollHeight, 200) + "px"; }
+function setTab(t){
+  S.tab = t;
+  document.querySelectorAll(".tab").forEach(s => s.classList.toggle("on", s.id === "tab-" + t));
+  document.querySelectorAll("nav.bottom button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === t ? "true" : "false"));
+  $("#main").scrollTop = 0; if (t === "charlar") scrollFin();
+}
+function setSize(s){ document.documentElement.dataset.size = s; try { localStorage.setItem("contigo-size", s); } catch {} document.querySelectorAll("#sizeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.s === s ? "true" : "false")); }
+function confirmar(btn){ btn.dataset.sure = "1"; btn.style.color = "var(--warn)"; btn.style.background = "var(--warn-soft)"; toast("Tocá otra vez para borrar."); setTimeout(() => { delete btn.dataset.sure; btn.style.color = ""; btn.style.background = ""; }, 4000); }
+
+/* ================= eventos ================= */
+$("#nav").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) setTab(b.dataset.tab); });
+$("#sendBtn").onclick = () => { if (S.busy) { S.ctl?.abort(); return; } enviar($("#box").value); };
+$("#box").addEventListener("input", autosize);
+$("#box").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); enviar($("#box").value); } });
+$("#photoBtn").onclick = () => $("#photoIn").click();
+$("#photoIn").onchange = async e => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
+  try { S.img = await aImagen(f, 1400, 0.82); S.imgThumb = await aImagen(f, 320, 0.6); } catch { toast("No pude abrir esa foto."); return; }
+  $("#attachImg").src = S.imgThumb; $("#attach").hidden = false; $("#box").placeholder = "¿Qué querés saber de la foto? (o tocá enviar)"; };
+$("#attachX").onclick = () => { S.img = null; S.imgThumb = null; $("#attach").hidden = true; $("#box").placeholder = "Escribí acá…"; };
+if (SR) { $("#micBtn").hidden = false; $("#micBtn").onclick = dictar; } else $("#hint").textContent = "Para hablar en vez de escribir, tocá el micrófono del teclado del celular.";
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset, m = S.mem;
+  if (d.say !== undefined) { const x = S.chat.msgs[Number(d.say)]; if (x) { desbloquearAudio(); hablar(x.t); } return; }
+  if (d.q) { setTab("charlar"); enviar(d.q); return; }
+  if (d.sug !== undefined) { const s = S.sug?.items?.[Number(d.sug)]; if (s) enviar(s.pedido || s.titulo); return; }
+  if (d.con) { abrirConexion(); return; }
+  if (d.prov) { pick = d.prov; renderConexion(); return; }
+  if (t.id === "sugBtn") { sugerir(); return; }
+  if (d.cita) { const c = m.citas.find(x => x.id === d.cita); if (c) { c.hecha = true; saveMem(); toast("¡Listo! " + c.titulo); } return; }
+  if (d.pend) { const p = m.pendientes.find(x => x.id === d.pend); if (p) { p.estado = "hecho"; p.hecho = hoy(); saveMem(); toast("¡Bien! Hecho."); } return; }
+  if (d.undo) { const [k, id] = d.undo.split(":"); if (k === "pend") { const p = m.pendientes.find(x => x.id === id); if (p) p.estado = "abierto"; } else { const c = m.citas.find(x => x.id === id); if (c) c.hecha = false; } saveMem(); return; }
+  const borrar = (attr, fn) => { if (t.dataset.sure) { fn(); saveMem(); } else confirmar(t); };
+  if (d.delcita) return borrar("delcita", () => m.citas = m.citas.filter(x => x.id !== d.delcita));
+  if (d.delpend) return borrar("delpend", () => m.pendientes = m.pendientes.filter(x => x.id !== d.delpend));
+  if (d.delmed) return borrar("delmed", () => m.salud.medicamentos = m.salud.medicamentos.filter(x => x.id !== d.delmed));
+  if (d.deldoc) return borrar("deldoc", () => m.salud.medicos = m.salud.medicos.filter(x => x.id !== d.deldoc));
+  if (d.delpers) return borrar("delpers", () => m.personas = m.personas.filter(x => x.id !== d.delpers));
+  if (d.delrec) return borrar("delrec", () => m.recuerdos = m.recuerdos.filter(x => x.id !== d.delrec));
+  if (d.delcond !== undefined) { m.salud.condiciones.splice(Number(d.delcond), 1); saveMem(); return; }
+  if (d.delint !== undefined) { m.intereses.splice(Number(d.delint), 1); saveMem(); return; }
+  if (d.hday) { renderHist(d.hday); return; }
+  if (d.hback) { renderHist(); return; }
+  if (t.id === "famCopy") { const txt = $("#famTxt").textContent; (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => toast("Copiado."), () => { const r = document.createRange(); r.selectNodeContents($("#famTxt")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Texto seleccionado: copialo."); }); return; }
+});
+
+document.addEventListener("submit", e => {
+  e.preventDefault(); const f = e.target, m = S.mem, v = id => $("#" + id).value.trim();
+  if (f.id === "onbForm") { const n = v("onbN"); if (!n) return; m.perfil.nombre = n; if (v("onbC")) m.perfil.ciudad = v("onbC"); saveMem(); cargarClima().then(renderWelcome);
+    if (conectado()) setTimeout(() => enviar("Hola, me llamo " + n + "."), 50); else abrirConexion(); return; }
+  if (f.id === "addForm") { const t = v("addTxt"); if (!t) return; const fe = v("addFecha"); if (fe) m.citas.push({id:nid(), titulo:t, fecha:fe, hora:v("addHora"), lugar:"", nota:"", hecha:false}); else m.pendientes.push({id:nid(), texto:t, tipo:"otro", estado:"abierto", creado:hoy()}); f.reset(); saveMem(); toast("Anotado."); return; }
+  if (f.id === "medForm") { if (!v("medN")) return; m.salud.medicamentos.push({id:nid(), nombre:v("medN"), dosis:v("medD"), horario:v("medH")}); f.reset(); saveMem(); return; }
+  if (f.id === "docForm") { if (!v("docN") && !v("docE")) return; m.salud.medicos.push({id:nid(), nombre:v("docN"), especialidad:v("docE"), tel:v("docT"), lugar:v("docL")}); f.reset(); saveMem(); return; }
+  if (f.id === "condForm") { if (!v("condIn")) return; m.salud.condiciones.push(v("condIn")); f.reset(); saveMem(); return; }
+  if (f.id === "persForm") { if (!v("persN")) return; m.personas.push({id:nid(), nombre:v("persN"), relacion:v("persR"), tel:v("persT"), nota:""}); f.reset(); saveMem(); return; }
+  if (f.id === "intForm") { if (!v("intIn")) return; m.intereses.push(v("intIn")); f.reset(); saveMem(); return; }
+});
+let pt;
+[["pNombre","nombre"],["pApodo","apodo"],["pCiudad","ciudad"],["pEdad","edad"],["pVive","vive_con"],["obraIn","obra_social"]].forEach(([id, k]) =>
+  $("#" + id).addEventListener("input", e => { S.mem.perfil[k] = e.target.value.trim(); renderHeader(); clearTimeout(pt); pt = setTimeout(() => { LS.set("memoria", S.mem); if (k === "ciudad") cargarClima().then(renderWelcome); }, 900); }));
+$("#histQ").addEventListener("input", () => renderHist());
+$("#famBtn").onclick = resumenFamilia;
+
+const SIZES = ["s","m","l"];
+$("#sizeBtn").onclick = () => { const c = document.documentElement.dataset.size || "m"; const n = SIZES[(SIZES.indexOf(c) + 1) % 3]; setSize(n); toast({s:"Letra normal", m:"Letra grande", l:"Letra muy grande"}[n]); };
+$("#cfgBtn").onclick = () => { const c = S.mem.config; $("#cfgName").value = c.asistente; $("#cfgVoz").checked = !!c.voz; $("#cfgBuscar").checked = !!c.buscar; $("#cfgAuto").checked = !!c.autoEnviar; $("#cfgMotor").value = c.motor || "auto";
+  document.querySelectorAll("#rateSeg button").forEach(b => b.setAttribute("aria-pressed", Number(b.dataset.r) === Number(c.rate) ? "true" : "false"));
+  $("#wipeConfirm").hidden = true; renderConNow(); $("#cfgSheet").hidden = false; };
+$("#cfgSheet").addEventListener("click", e => { if (e.target.id === "cfgSheet") $("#cfgClose").click(); });
+$("#conSheet").addEventListener("click", e => { if (e.target.id === "conSheet") $("#conClose").click(); });
+$("#sizeSeg").onclick = e => { const b = e.target.closest("button"); if (b) setSize(b.dataset.s); };
+$("#rateSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.mem.config.rate = Number(b.dataset.r); document.querySelectorAll("#rateSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); desbloquearAudio(); hablar("Así voy a hablar."); };
+$("#cfgClose").onclick = () => { const c = S.mem.config; c.asistente = $("#cfgName").value.trim() || "Clara"; c.voz = $("#cfgVoz").checked; c.buscar = $("#cfgBuscar").checked; c.autoEnviar = $("#cfgAuto").checked; c.motor = $("#cfgMotor").value; $("#cfgSheet").hidden = true; saveMem(); };
+$("#conOpen").onclick = abrirConexion;
+$("#conGo").onclick = conectar;
+$("#conModel").onchange = e => { const c = cfg(); setCfg({ models:Object.assign({}, c.models, { [pick]:e.target.value }), provider:keyOf(pick) ? pick : c.provider }); renderConexion(); };
+$("#conClose").onclick = () => { $("#conSheet").hidden = true; renderWelcome(); };
+$("#bkSave").onclick = guardarCopia;
+$("#bkLoad").onclick = () => $("#bkIn").click();
+$("#bkIn").onchange = e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) recuperarCopia(f); };
+$("#wipeBtn").onclick = () => { $("#wipeConfirm").hidden = false; };
+$("#wipeYes").onclick = () => { const keep = LS.get("cfg"); LS.keys().forEach(k => LS.del(k)); if (keep) LS.set("cfg", keep); S.mem = normMem(null); S.chat = {fecha:hoy(), msgs:[]}; S.prev = []; S.sug = null; S.wx = null; $("#cfgSheet").hidden = true; renderAll(); toast("Listo, empezamos de cero."); };
+
+/* ================= arranque ================= */
+function cargarDatos(){
+  const today = LS.get("chat-" + hoy()); S.chat = {fecha:hoy(), msgs:today?.msgs || []};
+  S.prev = chatsGuardados().filter(d => d.fecha !== hoy()).slice(0, 3);
+  const sg = LS.get("sugerencias"); S.sug = sg?.fecha === hoy() ? sg : null;
+}
+try { setSize(localStorage.getItem("contigo-size") || "m"); } catch { setSize("m"); }
+podarFotos(30);
+cargarDatos();
+renderAll(); scrollFin();
+cargarClima().then(() => { renderWelcome(); if (conectado() && S.mem.perfil.nombre && !S.sug && (S.chat.msgs.length || S.prev.length)) sugerir(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.chat.fecha !== hoy() && !S.busy) { S.prev.unshift({fecha:S.chat.fecha, msgs:S.chat.msgs}); S.chat = {fecha:hoy(), msgs:[]}; S.sug = null; renderAll(); } });
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+</body>
+</html>
