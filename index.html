@@ -304,19 +304,23 @@ select.in{appearance:auto}
 
     <!-- AGENDA -->
     <section class="tab" id="tab-agenda">
-      <div class="sec"><h2>Próximos turnos y salidas</h2><div id="citasList"></div></div>
-      <div class="sec"><h2>Cosas pendientes</h2><div class="sub">Tocá el cuadrado cuando esté hecho.</div><div id="pendList"></div></div>
       <div class="card">
-        <h2>Anotar algo</h2>
+        <h2>Agendar</h2>
         <form class="form" id="addForm">
-          <div><label class="l" for="addTxt">¿Qué hay que hacer?</label><input class="in" id="addTxt" placeholder="Ej.: llamar al plomero por la canilla"></div>
-          <div class="row">
-            <div><label class="l" for="addFecha">Día (si es un turno)</label><input class="in" type="date" id="addFecha"></div>
-            <div><label class="l" for="addHora">Hora</label><input class="in" type="time" id="addHora"></div>
-          </div>
-          <button class="btn" type="submit">Anotar</button>
+          <label class="l" for="addTxt">Decilo o escribilo como te salga</label>
+          <div class="crow"><input class="in" id="addTxt" placeholder="Ej.: 18 de octubre, Día de la Madre" autocomplete="off"><button class="mic" type="button" id="agMic" aria-label="Decirlo con la voz" title="Decirlo con la voz" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></button></div>
+          <div class="note">Ej.: “el jueves a las 10 turno con el cardiólogo”, “mañana llamar al plomero”, “pagar la luz el 25”.</div>
+          <details class="more"><summary>Elegir día y hora a mano</summary>
+            <div class="row" style="margin-top:.3rem">
+              <div><label class="l" for="addFecha">Día</label><input class="in" type="date" id="addFecha"></div>
+              <div><label class="l" for="addHora">Hora</label><input class="in" type="time" id="addHora"></div>
+            </div>
+          </details>
+          <button class="btn" type="submit" id="addBtn">Agendar</button>
         </form>
       </div>
+      <div class="sec"><h2>Próximos turnos y salidas</h2><div id="citasList"></div></div>
+      <div class="sec"><h2>Cosas pendientes</h2><div class="sub">Tocá el cuadrado cuando esté hecho.</div><div id="pendList"></div></div>
       <details class="more"><summary>Ver lo que ya está hecho</summary><div id="doneList" class="sec" style="margin-top:.5rem"></div></details>
     </section>
 
@@ -764,6 +768,49 @@ function hablar(t){
   else vozTelefono(texto);
 }
 
+/* ================= agendar con palabras ================= */
+const NUM_MES = { enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5, julio:6, agosto:7, septiembre:8, setiembre:8, octubre:9, noviembre:10, diciembre:11 };
+function leerAgenda(txt){
+  let t = " " + txt.toLowerCase() + " ", fecha = "", hora = "";
+  const hoyD = parseISO(hoy()), mk = (y, m, d) => { let dt = new Date(y, m, d); if (dt < hoyD) dt = new Date(y + 1, m, d); return iso(dt); };
+  let m;
+  if ((m = t.match(/(\d{1,2})\s*(?:de\s+)?(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)/))) { fecha = mk(hoyD.getFullYear(), NUM_MES[m[2]], +m[1]); t = t.replace(m[0], " "); }
+  else if ((m = t.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) { fecha = m[3] ? iso(new Date(+(m[3].length === 2 ? "20" + m[3] : m[3]), +m[2] - 1, +m[1])) : mk(hoyD.getFullYear(), +m[2] - 1, +m[1]); t = t.replace(m[0], " "); }
+  else if ((m = t.match(/\bpasado\s+mañana\b/))) { fecha = iso(new Date(hoyD.getTime() + 2 * 864e5)); t = t.replace(m[0], " "); }
+  else if ((m = t.match(/\bmañana\b(?!\s+a la)/))) { fecha = iso(new Date(hoyD.getTime() + 864e5)); t = t.replace(m[0], " "); }
+  else if ((m = t.match(/\bhoy\b/))) { fecha = hoy(); t = t.replace(m[0], " "); }
+  else if ((m = t.match(/\b(?:el\s+)?(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)(\s+que\s+viene|\s+pr[oó]ximo)?\b/))) {
+    const idx = DIAS.findIndex(d => d.normalize("NFD").replace(/[̀-ͯ]/g, "") === m[1].normalize("NFD").replace(/[̀-ͯ]/g, ""));
+    let add = (idx - hoyD.getDay() + 7) % 7; if (add === 0) add = 7; fecha = iso(new Date(hoyD.getTime() + add * 864e5)); t = t.replace(m[0], " "); }
+  else if ((m = t.match(/\bel\s+(\d{1,2})\b(?!\s*(?:hs|horas|:))/))) { const d = +m[1]; let dt = new Date(hoyD.getFullYear(), hoyD.getMonth(), d); if (dt < hoyD) dt = new Date(hoyD.getFullYear(), hoyD.getMonth() + 1, d); fecha = iso(dt); t = t.replace(m[0], " "); }
+  if ((m = t.match(/\ba\s+las?\s+(\d{1,2})(?:[:.](\d{2}))?\s*(?:hs|horas|h)?(\s+de\s+la\s+(tarde|noche))?/)) || (m = t.match(/\b(\d{1,2})(?:[:.](\d{2}))\s*(?:hs|horas|h)?\b/)) || (m = t.match(/\b(\d{1,2})\s*(?:hs|horas)\b/))) {
+    let h = +m[1]; if (m[4] && h < 12) h += 12; if (h < 24) { hora = String(h).padStart(2, "0") + ":" + (m[2] || "00"); t = t.replace(m[0], " "); } }
+  let titulo = t.replace(/\b(agend[aá]r?(me)?|anot[aá]r?(me)?|record[aá]r?(me)?|que tengo|tengo|el d[ií]a|para el|el|la|de|,|\.)\s*$/g, " ")
+    .replace(/^\s*(agend[aá]r?(me)?|anot[aá]r?(me)?|record[aá]r?(me)?|que)\b/, " ").replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, "").replace(/\s+/g, " ");
+  // recupera las mayúsculas originales (nombres propios)
+  const orig = txt.split(/\s+/); titulo = titulo.split(" ").map(w => orig.find(o => o.toLowerCase().replace(/[,.]/g, "") === w) ? orig.find(o => o.toLowerCase().replace(/[,.]/g, "") === w).replace(/[,.]/g, "") : w).join(" ");
+  titulo = titulo ? titulo.charAt(0).toUpperCase() + titulo.slice(1) : txt;
+  return fecha ? { op:"cita", titulo, fecha, hora } : { op:"pendiente", texto:txt.charAt(0).toUpperCase() + txt.slice(1), tipo:"otro" };
+}
+async function agendarTexto(txt){
+  const b = $("#addBtn"); b.disabled = true; b.textContent = "Agendando…";
+  let ops = null;
+  if (conectado()) {
+    try {
+      const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:700, turns:[{ role:"user", text:
+`Hoy es ${fechaLarga(hoy())} de ${new Date().getFullYear()} (${hoy()}). La persona quiere anotar en su agenda: "${txt}".
+Convertilo en una o más entradas. Si menciona un día (aunque sea "mañana", "el jueves", "el 25", "18 de octubre"), es una cita con la fecha real AAAA-MM-DD (si esa fecha ya pasó este año, usá el año que viene) y la hora HH:MM si la dice. El título corto y claro, con mayúscula inicial (ej.: "Día de la Madre", "Turno cardiólogo"). Si no menciona día, es un pendiente.
+Respondé SOLO: {"items":[{"op":"cita","titulo":"…","fecha":"AAAA-MM-DD","hora":"","lugar":"","nota":""}]} o {"items":[{"op":"pendiente","texto":"…","tipo":"medico|arreglo|tramite|compra|llamar|otro"}]}` }] });
+      const j = parseJSON(r.text); ops = Array.isArray(j) ? j : j.items;
+    } catch (e) { console.warn("agendar", e); }
+  }
+  if (!Array.isArray(ops) || !ops.length) ops = [leerAgenda(txt)];
+  const notas = aplicar(ops);
+  b.disabled = false; b.textContent = "Agendar";
+  if (!notas.length) { toast("No lo entendí. Probá con el día y qué es, ej.: “18 de octubre, Día de la Madre”."); return false; }
+  saveMem(); toast(notas.join(" · ")); if (S.mem.config.voz) hablar(notas.join(". ")); return true;
+}
+
 /* ================= dictado ================= */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, dictando = false, dictBase = "";
@@ -779,6 +826,18 @@ function dictar(){
   rec.onend = () => { dictando = false; $("#micBtn").classList.remove("on"); $("#micBtn").setAttribute("aria-label", "Hablar");
     if (final.trim() && S.mem.config.autoEnviar) enviar($("#box").value); };
   try { rec.start(); dictando = true; $("#micBtn").classList.add("on"); $("#micBtn").setAttribute("aria-label", "Dejar de escuchar"); } catch { toast("No pude usar el micrófono."); }
+}
+
+function dictarAgenda(){
+  if (!SR) return;
+  const btn = $("#agMic"), inp = $("#addTxt");
+  if (dictando) { try { rec.stop(); } catch {} return; }
+  pararVoz();
+  rec = new SR(); rec.lang = "es-AR"; rec.interimResults = true; rec.continuous = false; let final = "";
+  rec.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) final += r[0].transcript; else interim += r[0].transcript; } inp.value = final + interim; };
+  rec.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Hay que permitir el micrófono para poder hablar."); else if (e.error === "no-speech") toast("No escuché nada. Probá de nuevo."); };
+  rec.onend = () => { dictando = false; btn.classList.remove("on"); if (final.trim()) agendarTexto(final.trim()).then(ok => { if (ok) { inp.value = ""; } }); };
+  try { rec.start(); dictando = true; btn.classList.add("on"); toast("Te escucho: decí el día y qué es."); } catch { toast("No pude usar el micrófono."); }
 }
 
 /* ================= clima (Open-Meteo, sin clave) ================= */
@@ -933,7 +992,7 @@ function aplicar(ops){
       switch (o.op) {
         case "cita": { if (!s(o.titulo)) break; const c = {id:nid(), titulo:s(o.titulo), fecha:/^\d{4}-\d{2}-\d{2}$/.test(o.fecha) ? o.fecha : "", hora:s(o.hora).slice(0,5), lugar:s(o.lugar), nota:s(o.nota), hecha:false};
           if (!c.fecha) { m.pendientes.push({id:c.id, texto:c.titulo, tipo:"otro", estado:"abierto", creado:hoy()}); notas.push("Anotado en pendientes: " + c.titulo); break; }
-          m.citas.push(c); notas.push("Turno anotado: " + fmtCita(c)); break; }
+          m.citas.push(c); notas.push("Agendado: " + fmtCita(c)); break; }
         case "cita_hecha": case "cita_cancelar": { const c = m.citas.find(x => x.id === o.id); if (!c) break;
           if (o.op === "cita_hecha") { c.hecha = true; notas.push("Listo: " + c.titulo); } else { m.citas = m.citas.filter(x => x !== c); notas.push("Turno borrado: " + c.titulo); } break; }
         case "pendiente": { if (!s(o.texto)) break; m.pendientes.push({id:nid(), texto:s(o.texto), tipo:s(o.tipo) || "otro", estado:"abierto", creado:hoy()}); notas.push("Pendiente: " + s(o.texto)); break; }
@@ -1533,7 +1592,7 @@ $("#photoIn").onchange = async e => { const f = e.target.files?.[0]; e.target.va
   try { S.img = await aImagen(f, 1400, 0.82); S.imgThumb = await aImagen(f, 320, 0.6); } catch { toast("No pude abrir esa foto."); return; }
   $("#attachImg").src = S.imgThumb; $("#attach").hidden = false; $("#box").placeholder = "¿Qué querés saber de la foto? (o tocá enviar)"; };
 $("#attachX").onclick = () => { S.img = null; S.imgThumb = null; $("#attach").hidden = true; $("#box").placeholder = "Escribí acá…"; };
-if (SR) { $("#micBtn").hidden = false; $("#micBtn").onclick = dictar; } else $("#hint").textContent = "Para hablar en vez de escribir, tocá el micrófono del teclado del celular.";
+if (SR) { $("#micBtn").hidden = false; $("#micBtn").onclick = dictar; $("#agMic").hidden = false; $("#agMic").onclick = dictarAgenda; } else $("#hint").textContent = "Para hablar en vez de escribir, tocá el micrófono del teclado del celular.";
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t) return;
@@ -1589,7 +1648,9 @@ document.addEventListener("submit", e => {
   if (f.id === "syncJoin") { const b = f.querySelector("button"); b.disabled = true; b.textContent = "Conectando…"; activarSync(v("syncCode"), false).then(() => renderSyncCard()); return; }
   if (f.id === "onbForm") { const n = v("onbN"); if (!n) return; m.perfil.nombre = n; if (v("onbC")) m.perfil.ciudad = v("onbC"); const ed = parseInt(v("onbE"), 10); if (ed > 0 && ed < 120) m.perfil.edad = String(ed); saveMem(); cargarClima().then(renderWelcome);
     if (conectado()) setTimeout(() => enviar("Hola, me llamo " + n + "."), 50); else abrirConexion(); return; }
-  if (f.id === "addForm") { const t = v("addTxt"); if (!t) return; const fe = v("addFecha"); if (fe) m.citas.push({id:nid(), titulo:t, fecha:fe, hora:v("addHora"), lugar:"", nota:"", hecha:false}); else m.pendientes.push({id:nid(), texto:t, tipo:"otro", estado:"abierto", creado:hoy()}); f.reset(); saveMem(); toast("Anotado."); return; }
+  if (f.id === "addForm") { const t = v("addTxt"); if (!t) return; const fe = v("addFecha");
+    if (fe) { m.citas.push({id:nid(), titulo:t, fecha:fe, hora:v("addHora"), lugar:"", nota:"", hecha:false}); f.reset(); saveMem(); toast("Agendado."); return; }
+    agendarTexto(t).then(ok => { if (ok) f.reset(); }); return; }
   if (f.id === "medForm") { if (!v("medN")) return; m.salud.medicamentos.push({id:nid(), nombre:v("medN"), dosis:v("medD"), horario:v("medH")}); f.reset(); saveMem(); return; }
   if (f.id === "docForm") { if (!v("docN") && !v("docE")) return; m.salud.medicos.push({id:nid(), nombre:v("docN"), especialidad:v("docE"), tel:v("docT"), lugar:v("docL")}); f.reset(); saveMem(); return; }
   if (f.id === "condForm") { if (!v("condIn")) return; m.salud.condiciones.push(v("condIn")); f.reset(); saveMem(); return; }
