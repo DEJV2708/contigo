@@ -75,8 +75,17 @@ nav.bottom .pill{border-radius:99px;padding:.15rem 1rem;display:grid;place-items
 .msg img.thumb{display:block;max-width:220px;border-radius:12px;margin-bottom:.4rem}
 .msg .time{font-size:.7rem;opacity:.7;margin-top:.3rem}
 .msg .acts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.55rem}
-.msg .src{margin-top:.5rem;font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:.15rem}
-.msg .src a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.msg .src{margin-top:.6rem;display:flex;flex-direction:column;gap:.4rem}
+.msg .src > span{font-size:.75rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.msg .src a{display:flex;align-items:center;gap:.5rem;padding:.5rem .7rem;border:1.5px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--fg);text-decoration:none;font-size:.88rem;min-height:44px}
+.msg .src a b{color:var(--accent);flex:none}
+.msg .src a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.msg .src a svg{width:18px;height:18px;flex:none;margin-left:auto;color:var(--muted)}
+.meh{border:0;background:none;color:var(--muted);font-size:.8rem;text-decoration:underline;padding:.35rem .4rem;min-height:36px}
+.crow2{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.lupa{display:inline-flex;align-items:center;gap:.4rem;border:1.5px solid var(--line);background:var(--surface);border-radius:99px;padding:.35rem .85rem;font-weight:700;font-size:.85rem;min-height:40px}
+.lupa svg{width:18px;height:18px}
+.lupa[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 .chip{display:inline-flex;align-items:center;gap:.35rem;border-radius:99px;padding:.3rem .75rem;font-size:.82rem;background:var(--ok-soft);color:var(--ok);font-weight:700}
 .chip svg{width:16px;height:16px}
 .listen{border:1.5px solid var(--line);background:var(--surface2);border-radius:99px;padding:.35rem .9rem;font-size:.85rem;font-weight:700;display:inline-flex;align-items:center;gap:.35rem}
@@ -99,7 +108,7 @@ nav.bottom .pill{border-radius:99px;padding:.15rem 1rem;display:grid;place-items
 .photo svg,.mic svg{width:28px;height:28px}
 .mic.on{background:var(--warn);border-color:var(--warn);color:#fff;animation:pulse 1.2s infinite}
 @keyframes pulse{50%{transform:scale(1.06)}}
-.hint{font-size:.75rem;color:var(--muted)}
+.hint{font-size:.75rem;color:var(--muted);flex:1;min-width:10rem}
 .attach{display:flex;align-items:center;gap:.6rem;font-size:.85rem}
 .attach img{height:56px;border-radius:8px}
 .attach button{border:0;background:none;color:var(--warn);font-weight:700;text-decoration:underline}
@@ -225,7 +234,7 @@ select.in{appearance:auto}
             <button class="mic" id="micBtn" aria-label="Hablar" title="Hablar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></button>
             <button class="send" id="sendBtn" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
           </div>
-          <div class="hint" id="hint">Tocá el micrófono para hablar en vez de escribir.</div>
+          <div class="crow2"><button class="lupa" id="lupaBtn" aria-pressed="false" title="Buscar en internet como en Google"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Buscar en internet</button><div class="hint" id="hint">Tocá el micrófono para hablar en vez de escribir.</div></div>
         </div>
       </div>
     </section>
@@ -292,6 +301,9 @@ select.in{appearance:auto}
       </div>
       <div class="sec"><h2>Lo que me gusta</h2><div class="chips2" id="intList"></div>
         <form class="form" id="intForm"><div class="crow"><input class="in" id="intIn" placeholder="Ej.: tango, jardinería, River"><button class="btn" type="submit">Sumar</button></div></form>
+      </div>
+      <div class="sec"><h2>Cómo te gusta que te responda</h2><div class="sub">Lo voy aprendiendo de lo que me pedís y me corregís. Siempre lo tengo en cuenta.</div><div id="prefList"></div>
+        <form class="form" id="prefForm"><div class="crow"><input class="in" id="prefIn" placeholder="Ej.: siempre pasame los links de las noticias"><button class="btn" type="submit">Sumar</button></div></form>
       </div>
       <div class="sec"><h2>Cosas que me acuerdo de vos</h2><div id="recList"></div></div>
       <div class="sec"><h2>Lo que hablamos</h2>
@@ -374,6 +386,7 @@ const ICO = {
   del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
   spk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>',
   send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>',
+  ext:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
   stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
 };
 
@@ -399,7 +412,7 @@ const LS = {
 };
 const defMem = () => ({
   perfil:{nombre:"",apodo:"",ciudad:"",edad:"",vive_con:"",obra_social:""},
-  personas:[], intereses:[], recuerdos:[],
+  personas:[], intereses:[], recuerdos:[], preferencias:[],
   salud:{condiciones:[], medicamentos:[], medicos:[]},
   citas:[], pendientes:[],
   config:{asistente:"Clara", voz:false, rate:0.95, buscar:true, autoEnviar:true, motor:"auto"}
@@ -410,7 +423,7 @@ function normMem(m){
   out.perfil = Object.assign(defMem().perfil, m.perfil || {});
   out.salud = Object.assign(defMem().salud, m.salud || {});
   out.config = Object.assign(defMem().config, m.config || {});
-  for (const k of ["personas","intereses","recuerdos","citas","pendientes"]) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ["personas","intereses","recuerdos","preferencias","citas","pendientes"]) if (!Array.isArray(out[k])) out[k] = [];
   for (const k of ["condiciones","medicamentos","medicos"]) if (!Array.isArray(out.salud[k])) out.salud[k] = [];
   return out;
 }
@@ -587,6 +600,7 @@ async function llm({ system, turns, onText, search = false, json = false, max = 
     const ch = (j.choices || [])[0] || {}, d = ch.delta || ch.message || {};
     if (d.content) { acc += d.content; onText && onText(acc); }
     (d.annotations || []).forEach(a => a.type === "url_citation" && a.url_citation && addSrc(a.url_citation.url, a.url_citation.title));
+    (d.executed_tools || []).forEach(t => ((t.search_results || {}).results || []).forEach(x => addSrc(x.url, x.title)));
   }, signal);
   return { text:acc, fuentes };
 }
@@ -703,13 +717,16 @@ const climaTxt = () => S.wx ? `En ${S.wx.geo.nombre} ahora hay ${S.wx.t}°, ${WX
 function md(t){
   const lines = esc(t).split(/\n/); let html = "", ul = false;
   for (let ln of lines) {
-    ln = ln.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    if (/^\s*([-*_])\1{2,}\s*$/.test(ln)) continue;
+    ln = ln.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,;:]|$)/g, "$1<i>$2</i>").replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
     if (/^\s*[-•*]\s+/.test(ln)) { if (!ul) { html += "<ul>"; ul = true; } html += "<li>" + ln.replace(/^\s*[-•*]\s+/, "") + "</li>"; continue; }
     if (ul) { html += "</ul>"; ul = false; }
     if (ln.trim()) html += "<p>" + ln.replace(/^#+\s*/, "") + "</p>";
   }
   return html + (ul ? "</ul>" : "");
 }
+function dominio(f){ const t = String(f.t || ""); if (/^[\w-]+(\.[\w-]+)+$/.test(t)) return t.replace(/^www\./, ""); try { const h = new URL(f.u).hostname.replace(/^www\./, ""); return /vertexaisearch|googleusercontent/.test(h) ? (t || "Abrir") : h; } catch { return t || "Abrir"; } }
+const PIDE_LINKS = /\b(links?|enlaces?|url|fuentes?|p[aá]ginas? web|d[oó]nde lo le[ií]|pasame (las|los) (p[aá]ginas|diarios))\b/i;
 const visible = t => { const i = t.indexOf(MARK); const v = i >= 0 ? t.slice(0, i) : t; return v.replace(/#{1,3}[A-Z]*\s*$/, "").trim(); };
 
 /* ================= prompt ================= */
@@ -717,7 +734,7 @@ function memParaIA(){
   const m = S.mem;
   return JSON.stringify({
     perfil:m.perfil, personas:m.personas.map(p => ({nombre:p.nombre, relacion:p.relacion, tel:p.tel, nota:p.nota})),
-    intereses:m.intereses, recuerdos:m.recuerdos.slice(-60).map(r => r.texto),
+    intereses:m.intereses, recuerdos:m.recuerdos.slice(-60).map(r => r.texto), busquedas_recientes:(m.busquedas || []).slice(-15),
     salud:{condiciones:m.salud.condiciones, medicamentos:m.salud.medicamentos.map(x => ({id:x.id, nombre:x.nombre, dosis:x.dosis, horario:x.horario})), medicos:m.salud.medicos.map(x => ({nombre:x.nombre, especialidad:x.especialidad, tel:x.tel, lugar:x.lugar}))},
     citas_proximas:m.citas.filter(c => !c.hecha && diasHasta(c.fecha) >= -1).map(c => ({id:c.id, titulo:c.titulo, fecha:c.fecha, hora:c.hora, lugar:c.lugar, nota:c.nota})),
     pendientes:m.pendientes.filter(p => p.estado !== "hecho").map(p => ({id:p.id, texto:p.texto, tipo:p.tipo, desde:p.creado}))
@@ -733,9 +750,12 @@ function reglas(conWeb){
     : `- Ahora no podés buscar en internet. Si pide noticias o datos actuales, decilo con naturalidad y ofrecé que te pegue el texto o te mande una foto del diario. Para médicos o técnicos, decí qué especialista conviene, a quién llamar, qué decir y qué llevar, y ofrecé anotarlo como pendiente.`;
   return `Sos ${n}, la asistente personal de inteligencia artificial de ${quien || "esta persona"}${quien ? " (así le gusta que le digan)" : ""}. Hablás en español rioplatense, con voseo, cálida, respetuosa y paciente, como alguien de confianza que sabe mucho. Hoy es ${fechaLarga(hoy())} de ${ahora.getFullYear()} (${hoy()}), son las ${hhmm(ahora)}.${S.wx ? " Clima: " + climaTxt() : ""}
 
-CÓMO RESPONDER
-- Frases cortas y claras, sin palabras técnicas ni en inglés. Una idea por vez. En general menos de 120 palabras, salvo que pida más detalle.
-- Si das pasos o una lista, usá guiones cortos. No uses títulos, tablas ni emojis.
+${S.mem.preferencias.length ? "CÓMO LE GUSTA QUE LE RESPONDAS (lo aprendiste de esta persona; seguilo SIEMPRE, por encima de las reglas generales):\n" + S.mem.preferencias.map(p => "- " + p.texto).join("\n") + "\n\n" : ""}CÓMO RESPONDER
+- Aprendé de la persona: si te corrige, se queja de algo ("no me pusiste…", "más corto", "siempre…") o te dice que algo le gustó, pedí disculpas breve si corresponde, corregilo en esta misma respuesta y guardalo como preferencia. Si busca seguido un tema, guardalo como interés.
+${S.mem.perfil.edad ? "- Tiene " + S.mem.perfil.edad + " años: adaptá los temas, los ejemplos, las sugerencias y las preguntas que le hacés a su edad y etapa de vida (estudio, trabajo, familia, jubilación, salud), sin mencionar la edad a cada rato.\n" : "- Todavía no sabés su edad: si viene al caso en la charla, preguntásela una vez para orientarte mejor.\n"}- Frases cortas y claras, sin palabras técnicas ni en inglés. Una idea por vez. En general menos de 120 palabras, salvo que pida más detalle.
+- Si das pasos o una lista, usá guiones cortos. No uses títulos, tablas, líneas separadoras ni emojis.
+- Si pide links, enlaces o fuentes, pasá las direcciones completas (https://…), una por renglón, con el nombre del medio. Usá las fuentes de tus respuestas anteriores (están entre corchetes en la charla) o buscá de nuevo.
+- Nunca dejes la respuesta vacía: siempre escribí algo para la persona antes de la línea ${MARK}.
 - Si algo no está claro, hacé UNA sola pregunta.
 - Usá lo que ya sabés de la persona (memoria abajo): su nombre, su gente, sus remedios, sus turnos. Si viene al caso, recordale un turno o pendiente cercano.
 ${web}
@@ -756,6 +776,7 @@ AL FINAL de cada respuesta escribí en una línea aparte ${MARK} y después un a
 {"op":"persona","nombre":"Laura","relacion":"hija","tel":"...","nota":"vive en Córdoba"}
 {"op":"interes","texto":"jardinería"}
 {"op":"recuerdo","texto":"Le gusta el café sin azúcar; su perro se llama Toby"}
+{"op":"preferencia","texto":"Cuando le paso noticias, incluir siempre los links"}  (cómo le gusta que le respondas: guardala cuando te corrija, se queje, o diga que algo le gustó o no; frases cortas y concretas)
 {"op":"medicamento","nombre":"Enalapril","dosis":"10 mg","horario":"mañana y noche"}   {"op":"medicamento_quitar","id":"..."}
 {"op":"medico","nombre":"Dra. Gómez","especialidad":"clínica","tel":"...","lugar":"..."}  (también los que encuentres buscando y la persona quiera guardar)
 {"op":"condicion","texto":"presión alta"}`;
@@ -782,6 +803,7 @@ function aplicar(ops){
           if (p) { for (const k of ["relacion","tel","nota"]) if (s(o[k])) p[k] = s(o[k]); } else m.personas.push({id:nid(), nombre:s(o.nombre), relacion:s(o.relacion), tel:s(o.tel), nota:s(o.nota)});
           notas.push("Guardé a " + s(o.nombre)); break; }
         case "interes": { const t = s(o.texto); if (t && !m.intereses.some(x => x.toLowerCase() === t.toLowerCase())) { m.intereses.push(t); notas.push("Te gusta: " + t); } break; }
+        case "preferencia": { const t = s(o.texto); if (t && !m.preferencias.some(x => x.texto.toLowerCase() === t.toLowerCase())) { m.preferencias.push({id:nid(), texto:t, fecha:hoy()}); notas.push("Aprendido: " + t); } break; }
         case "recuerdo": { const t = s(o.texto); if (t) { m.recuerdos.push({id:nid(), texto:t, fecha:hoy()}); notas.push("Me lo guardo"); } break; }
         case "medicamento": { if (!s(o.nombre)) break; const x = m.salud.medicamentos.find(y => y.nombre.toLowerCase() === s(o.nombre).toLowerCase());
           if (x) { if (s(o.dosis)) x.dosis = s(o.dosis); if (s(o.horario)) x.horario = s(o.horario); } else m.salud.medicamentos.push({id:nid(), nombre:s(o.nombre), dosis:s(o.dosis), horario:s(o.horario)});
@@ -806,14 +828,15 @@ function historial(){
   const all = [];
   for (const d of S.prev.slice().reverse()) for (const x of d.msgs || []) all.push(x);
   for (const x of S.chat.msgs) all.push(x);
-  return all.filter(x => x.t && !x.err).slice(-36).map(x => ({ role:x.r === "me" ? "user" : "assistant", text:(x.foto || x.fotoVieja ? "[Mandó una foto] " : "") + x.t }));
+  return all.filter(x => x.t && !x.err).slice(-36).map(x => ({ role:x.r === "me" ? "user" : "assistant",
+    text:(x.foto || x.fotoVieja ? "[Mandó una foto] " : "") + x.t + ((x.fuentes || []).length ? "\n[Fuentes de esta respuesta: " + x.fuentes.map(f => f.t + " " + f.u).join(" | ") + "]" : "") }));
 }
 function msgHTML(x, i){
   if (x.r === "me") return `<div class="msg me">${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="Foto enviada">` : ""}${md(x.t)}<div class="time">${hhmm(x.ts)}</div></div>`;
   const acts = (x.notas || []).map(n => `<span class="chip">${ICO.check}${esc(n)}</span>`).join("");
-  const src = (x.fuentes || []).length ? `<div class="src"><span>Fuentes:</span>${x.fuentes.map(f => `<a href="${esc(f.u)}" target="_blank" rel="noopener">${esc(f.t)}</a>`).join("")}</div>` : "";
+  const src = (x.fuentes || []).length ? `<div class="src"><span>Links</span>${x.fuentes.map(f => `<a href="${esc(f.u)}" target="_blank" rel="noopener"><b>${esc(dominio(f))}</b><span>${esc(f.t !== dominio(f) ? f.t : "Abrir")}</span>${ICO.ext}</a>`).join("")}</div>` : "";
   return `<div class="msg ai">${x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> ${x.buscando ? "buscando…" : "pensando…"}</span>`}${x.t ? src : ""}
-    ${x.t && i >= 0 ? `<div class="acts"><button class="listen" data-say="${i}">${ICO.spk}Escuchar</button>${acts}</div>` : ""}</div>`;
+    ${x.t && i >= 0 ? `<div class="acts"><button class="listen" data-say="${i}">${ICO.spk}Escuchar</button>${acts}${!x.err ? `<button class="meh" data-meh="${i}">No me sirvió</button>` : ""}</div>` : ""}</div>`;
 }
 function renderChat(){
   let h = "";
@@ -834,7 +857,7 @@ function renderWelcome(){
   let h = "";
   if (!m.perfil.nombre) {
     h += `<div class="card sun"><h2>¡Hola! Soy ${esc(m.config.asistente)}.</h2><p>Estoy para charlar, ayudarte a acordarte de los turnos y las cosas pendientes, buscarte médicos o noticias, explicarte papeles y darte una mano con lo que necesites. Todo lo que hablemos queda guardado.</p>
-      <form class="form" id="onbForm"><div class="row"><div><label class="l" for="onbN">¿Cómo te llamás?</label><input class="in" id="onbN" autocomplete="given-name"></div><div><label class="l" for="onbC">¿En qué ciudad vivís?</label><input class="in" id="onbC" placeholder="Ej.: Mendoza"></div></div><button class="btn" type="submit">Empezar</button></form></div>`;
+      <form class="form" id="onbForm"><div class="row"><div><label class="l" for="onbN">¿Cómo te llamás?</label><input class="in" id="onbN" autocomplete="given-name"></div><div><label class="l" for="onbE">¿Cuántos años tenés?</label><input class="in" id="onbE" inputmode="numeric" maxlength="3" placeholder="Ej.: 45"></div></div><div><label class="l" for="onbC">¿En qué ciudad vivís?</label><input class="in" id="onbC" placeholder="Ej.: Mendoza"></div><button class="btn" type="submit">Empezar</button></form></div>`;
   } else if (!conectado()) {
     h += `<div class="card sun"><h2>Falta un paso</h2><p>Para que pueda responderte hay que conectar una inteligencia artificial. Se hace una sola vez, en dos minutos. Hay opciones gratis.</p><button class="btn" data-con="1">Conectar ahora</button></div>`;
   }
@@ -870,19 +893,41 @@ async function enviar(texto){
   const prevTurns = historial();
   const me = {id:nid(), r:"me", t:texto, ts:Date.now()}; if (thumb) me.foto = thumb;
   S.chat.msgs.push(me);
-  const p = prov(), conWeb = !!S.mem.config.buscar && !img && ((p === "anthropic" || p === "gemini") || PIDE_WEB.test(texto));
-  const ai = {id:nid(), r:"ai", t:"", ts:Date.now(), buscando:conWeb && PIDE_WEB.test(texto)}; S.chat.msgs.push(ai);
+  const modoBuscar = S.lupa && !img;
+  if (modoBuscar) { me.busqueda = true; S.mem.busquedas = [...(S.mem.busquedas || []), texto.slice(0, 80)].slice(-30); guardarMem(); setLupa(false); }
+  const p = prov(), conWeb = !img && (modoBuscar || (!!S.mem.config.buscar && ((p === "anthropic" || p === "gemini") || PIDE_WEB.test(texto) || PIDE_LINKS.test(texto))));
+  const ai = {id:nid(), r:"ai", t:"", ts:Date.now(), buscando:conWeb && (modoBuscar || PIDE_WEB.test(texto))}; S.chat.msgs.push(ai);
+  // Pide los links de lo que ya contó: se los muestro al toque, sin volver a preguntarle a la IA
+  const conLinks = PIDE_LINKS.test(texto) && texto.length < 90 && !img && [...S.chat.msgs].reverse().find(x => x.r === "ai" && x !== ai && (x.fuentes || []).length);
+  if (conLinks) {
+    ai.t = "Estos son los links de lo que te conté. Tocá el que quieras para abrirlo:"; ai.fuentes = conLinks.fuentes; delete ai.buscando;
+    renderChat(); scrollFin(); saveChat(); if (S.mem.config.voz) hablar(ai.t); return;
+  }
   const idx = S.chat.msgs.length - 1;
   renderChat(); scrollFin(); saveChat();
   setBusy(true);
   S.ctl = new AbortController();
   const turns = [...prevTurns];
   while (turns.length && turns[0].role === "assistant") turns.shift();
-  turns.push({ role:"user", text:(img ? "[Mandó una foto] " : "") + texto, image:img ? { type:"image/jpeg", data:img.split(",")[1] } : null });
+  const pedido = modoBuscar
+    ? `[MODO BUSCADOR] Buscá en internet AHORA (es obligatorio usar la búsqueda): "${texto}".
+Respondé como un buscador, en este orden:
+1) Una respuesta directa de 1 o 2 frases, si la pregunta la tiene.
+2) De 3 a 6 resultados, cada uno en un renglón con guion: **nombre del sitio o lugar** — qué tiene en una línea (dirección, teléfono, horario o precio si aparecen) — la dirección web completa si la tenés.
+Priorizá sitios argentinos y de ${S.mem.perfil.ciudad || "su zona"} si corresponde. No inventes datos.`
+    : texto;
+  turns.push({ role:"user", text:(img ? "[Mandó una foto] " : "") + pedido, image:img ? { type:"image/jpeg", data:img.split(",")[1] } : null });
   try {
-    const r = await llm({ system:reglas(conWeb), turns, search:conWeb, signal:S.ctl.signal,
-      onText: t => { ai.t = visible(t); ai.buscando = false; paintLast(idx); } });
-    ai.t = visible(r.text) || "Listo.";
+    const onText = t => { ai.t = visible(t); ai.buscando = false; paintLast(idx); };
+    let r = await llm({ system:reglas(conWeb), turns, search:conWeb, signal:S.ctl.signal, onText });
+    if (!visible(r.text)) {
+      // vino vacía (a veces la IA bloquea la respuesta): otro intento con un pedido más simple
+      ai.buscando = !!conWeb; paintLast(idx);
+      const t2 = [...turns.slice(0, -1), { ...turns[turns.length - 1], text:turns[turns.length - 1].text + "\n\n(Respondé con tus palabras, en pocas líneas. Si son links, poné el nombre de cada sitio y su dirección web.)" }];
+      const r2 = await llm({ system:reglas(conWeb), turns:t2, search:conWeb, signal:S.ctl.signal, onText });
+      r = { text:r2.text, fuentes:r2.fuentes.length ? r2.fuentes : r.fuentes };
+    }
+    ai.t = visible(r.text) || ((r.fuentes || []).length ? "Encontré esto. Tocá un link para abrirlo:" : "No me salió la respuesta. ¿Me lo pedís de otra forma?");
     ai.fuentes = r.fuentes;
     ai.notas = aplicar(parseOps(r.text));
     ai.ts = Date.now();
@@ -916,7 +961,7 @@ async function sugerir(){
   const b = $("#sugBtn"); if (b) { b.disabled = true; b.textContent = "Pensando ideas…"; }
   try {
     const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:1200, turns:[{ role:"user", text:
-`Sos ${S.mem.config.asistente}, asistente personal de IA (español rioplatense, voseo). Hoy es ${fechaLarga(hoy())}.${S.wx ? " " + climaTxt() : ""} Con lo que sabés de la persona, proponé 3 ideas cortas para hoy: recordar un turno o pendiente cercano, un tema de charla según sus gustos, una actividad acorde al clima, llamar a alguien querido, escuchar las noticias, o un cuidado de salud simple (agua, caminar, remedios). Variá los temas.
+`Sos ${S.mem.config.asistente}, asistente personal de IA (español rioplatense, voseo). Hoy es ${fechaLarga(hoy())}.${S.wx ? " " + climaTxt() : ""} Con lo que sabés de la persona, proponé 3 ideas cortas para hoy, acordes a su edad y etapa de vida: recordar un turno o pendiente cercano, un tema de charla según sus gustos, una actividad acorde al clima, llamar a alguien querido, escuchar las noticias, o un cuidado de salud simple (agua, caminar, remedios). Variá los temas.
 Respondé SOLO un objeto JSON: {"ideas":[{"titulo":"máx 6 palabras","texto":"una frase corta","pedido":"lo que la persona le diría a la asistente si toca la idea, en primera persona"}]}
 MEMORIA: ${memParaIA()}` }] });
     const j = parseJSON(r.text), items = Array.isArray(j) ? j : j.ideas;
@@ -952,6 +997,7 @@ function renderMemoria(){
   for (const [id, k] of [["pNombre","nombre"],["pApodo","apodo"],["pCiudad","ciudad"],["pEdad","edad"],["pVive","vive_con"]]) if (document.activeElement !== $("#" + id)) $("#" + id).value = m.perfil[k] || "";
   $("#persList").innerHTML = m.personas.length ? `<div class="sec">${m.personas.map(p => `<div class="item"><div class="tx"><b>${esc(p.nombre)}</b>${p.relacion ? " · " + esc(p.relacion) : ""}<small>${telHTML(p.tel)}${p.nota ? " · " + esc(p.nota) : ""}</small></div><button class="del" data-delpers="${p.id}" aria-label="Quitar">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Todavía no sé quién es tu gente. Contámelo cuando quieras.</div>`;
   $("#intList").innerHTML = m.intereses.length ? m.intereses.map((c,i) => `<span class="c">${esc(c)}<button data-delint="${i}" aria-label="Quitar">✕</button></span>`).join("") : `<div class="empty">Contame qué te gusta y lo voy sumando.</div>`;
+  $("#prefList").innerHTML = m.preferencias.length ? `<div class="sec">${m.preferencias.slice().reverse().map(r => `<div class="item"><div class="tx">${esc(r.texto)}<small>Aprendido ${esc(cuando(r.fecha))}</small></div><button class="del" data-delpref="${r.id}" aria-label="Olvidar">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Todavía nada. Si algo de cómo te respondo no te gusta, decímelo y lo aprendo.</div>`;
   $("#recList").innerHTML = m.recuerdos.length ? `<div class="sec">${m.recuerdos.slice().reverse().map(r => `<div class="item"><div class="tx">${esc(r.texto)}<small>${esc(fechaLarga(r.fecha))}</small></div><button class="del" data-delrec="${r.id}" aria-label="Olvidar">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">A medida que charlemos, voy guardando lo importante acá.</div>`;
   renderHist();
 }
@@ -1198,6 +1244,8 @@ $("#nav").addEventListener("click", e => { const b = e.target.closest("button[da
 $("#sendBtn").onclick = () => { if (S.busy) { S.ctl?.abort(); return; } enviar($("#box").value); };
 $("#box").addEventListener("input", autosize);
 $("#box").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); enviar($("#box").value); } });
+function setLupa(on){ S.lupa = on; const b = $("#lupaBtn"); b.setAttribute("aria-pressed", on ? "true" : "false"); $("#box").placeholder = on ? "¿Qué querés buscar? (ej.: farmacia de turno, cardiólogo PAMI)" : "Escribí acá…"; if (on) $("#box").focus(); }
+$("#lupaBtn").onclick = () => setLupa(!S.lupa);
 $("#photoBtn").onclick = () => $("#photoIn").click();
 $("#photoIn").onchange = async e => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
   try { S.img = await aImagen(f, 1400, 0.82); S.imgThumb = await aImagen(f, 320, 0.6); } catch { toast("No pude abrir esa foto."); return; }
@@ -1225,6 +1273,8 @@ document.addEventListener("click", e => {
   if (d.delpers) return borrar("delpers", () => m.personas = m.personas.filter(x => x.id !== d.delpers));
   if (d.delrec) return borrar("delrec", () => m.recuerdos = m.recuerdos.filter(x => x.id !== d.delrec));
   if (d.delcond !== undefined) { m.salud.condiciones.splice(Number(d.delcond), 1); saveMem(); return; }
+  if (d.delpref) return borrar("delpref", () => m.preferencias = m.preferencias.filter(x => x.id !== d.delpref));
+  if (d.meh !== undefined) { const b = $("#box"); b.value = "No me sirvió tu respuesta porque "; autosize(); b.focus(); try { b.setSelectionRange(b.value.length, b.value.length); } catch {} toast("Contame qué faltó y lo aprendo."); return; }
   if (d.delint !== undefined) { m.intereses.splice(Number(d.delint), 1); saveMem(); return; }
   if (d.hday) { renderHist(d.hday); return; }
   if (d.hback) { renderHist(); return; }
@@ -1239,13 +1289,14 @@ document.addEventListener("click", e => {
 document.addEventListener("submit", e => {
   e.preventDefault(); const f = e.target, m = S.mem, v = id => $("#" + id).value.trim();
   if (f.id === "syncJoin") { const b = f.querySelector("button"); b.disabled = true; b.textContent = "Conectando…"; activarSync(v("syncCode"), false).then(() => renderSyncCard()); return; }
-  if (f.id === "onbForm") { const n = v("onbN"); if (!n) return; m.perfil.nombre = n; if (v("onbC")) m.perfil.ciudad = v("onbC"); saveMem(); cargarClima().then(renderWelcome);
+  if (f.id === "onbForm") { const n = v("onbN"); if (!n) return; m.perfil.nombre = n; if (v("onbC")) m.perfil.ciudad = v("onbC"); const ed = parseInt(v("onbE"), 10); if (ed > 0 && ed < 120) m.perfil.edad = String(ed); saveMem(); cargarClima().then(renderWelcome);
     if (conectado()) setTimeout(() => enviar("Hola, me llamo " + n + "."), 50); else abrirConexion(); return; }
   if (f.id === "addForm") { const t = v("addTxt"); if (!t) return; const fe = v("addFecha"); if (fe) m.citas.push({id:nid(), titulo:t, fecha:fe, hora:v("addHora"), lugar:"", nota:"", hecha:false}); else m.pendientes.push({id:nid(), texto:t, tipo:"otro", estado:"abierto", creado:hoy()}); f.reset(); saveMem(); toast("Anotado."); return; }
   if (f.id === "medForm") { if (!v("medN")) return; m.salud.medicamentos.push({id:nid(), nombre:v("medN"), dosis:v("medD"), horario:v("medH")}); f.reset(); saveMem(); return; }
   if (f.id === "docForm") { if (!v("docN") && !v("docE")) return; m.salud.medicos.push({id:nid(), nombre:v("docN"), especialidad:v("docE"), tel:v("docT"), lugar:v("docL")}); f.reset(); saveMem(); return; }
   if (f.id === "condForm") { if (!v("condIn")) return; m.salud.condiciones.push(v("condIn")); f.reset(); saveMem(); return; }
   if (f.id === "persForm") { if (!v("persN")) return; m.personas.push({id:nid(), nombre:v("persN"), relacion:v("persR"), tel:v("persT"), nota:""}); f.reset(); saveMem(); return; }
+  if (f.id === "prefForm") { if (!v("prefIn")) return; m.preferencias.push({id:nid(), texto:v("prefIn"), fecha:hoy()}); f.reset(); saveMem(); toast("Aprendido."); return; }
   if (f.id === "intForm") { if (!v("intIn")) return; m.intereses.push(v("intIn")); f.reset(); saveMem(); return; }
 });
 let pt;
