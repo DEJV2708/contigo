@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Contigo</title>
-<meta name="description" content="Asistente de compañía para personas mayores: charla que recuerda todo, turnos, pendientes, salud, noticias y clima.">
+<meta name="description" content="Tu asistente IA: una charla que recuerda todo, turnos, pendientes, salud, noticias y clima.">
 <meta name="theme-color" content="#0B6A86">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="favicon-64.png" type="image/png">
@@ -624,7 +624,7 @@ async function vozGemini(texto){
     const ids = (j.models || []).filter(x => /tts/i.test(x.name) && (x.supportedGenerationMethods || []).includes("generateContent")).map(x => x.name.replace(/^models\//, ""));
     m = ids.find(i => /flash/.test(i)) || ids[0]; if (!m) throw new Error("sin-tts"); setCfg({ ttsModel:m }); }
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, { method:"POST", headers:{ "Content-Type":"application/json", "x-goog-api-key":key },
-    body:JSON.stringify({ contents:[{ parts:[{ text:"Leé esto en español rioplatense, con voz cálida, clara y pausada, como alguien de confianza que acompaña a una persona mayor: " + texto }] }],
+    body:JSON.stringify({ contents:[{ parts:[{ text:"Leé esto en español rioplatense, con voz cálida, clara y pausada, como alguien de confianza: " + texto }] }],
       generationConfig:{ responseModalities:["AUDIO"], speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName:"Sulafat" } } } } }) });
   if (!r.ok) { if (r.status === 404) setCfg({ ttsModel:null }); throw new Error("gemini-" + r.status); }
   const j = await r.json(), part = (((j.candidates || [])[0] || {}).content || {}).parts?.find(x => x.inlineData || x.inline_data);
@@ -723,7 +723,7 @@ function reglas(conWeb){
     ? `- Podés BUSCAR EN INTERNET. Usalo cuando pida algo actual o del mundo real: noticias del día (resumí 3 a 5 de medios argentinos confiables, en palabras simples, sin alarmar), médicos o especialistas cerca de ${S.mem.perfil.ciudad || "donde vive"} (con dirección y teléfono si aparecen, y aclarando que conviene confirmar llamando; si tiene PAMI, mencioná la cartilla de PAMI), técnicos o servicios (plomero, gasista, cerrajero), farmacias de turno, trámites (ANSES, PAMI), resultados deportivos, feriados. Nombrá de dónde sacaste el dato. No inventes teléfonos ni direcciones.
 - No podés llamar por teléfono ni sacar turnos por la persona: decile a quién llamar, qué decir y qué llevar (DNI, credencial, estudios), y ofrecé anotarlo.`
     : `- Ahora no podés buscar en internet. Si pide noticias o datos actuales, decilo con naturalidad y ofrecé que te pegue el texto o te mande una foto del diario. Para médicos o técnicos, decí qué especialista conviene, a quién llamar, qué decir y qué llevar, y ofrecé anotarlo como pendiente.`;
-  return `Sos ${n}, una asistente de compañía y ayuda para una persona mayor${quien ? " a quien le decís " + quien : ""}. Hablás en español rioplatense, con voseo, cálida, respetuosa y paciente, como una sobrina atenta que sabe mucho. Hoy es ${fechaLarga(hoy())} de ${ahora.getFullYear()} (${hoy()}), son las ${hhmm(ahora)}.${S.wx ? " Clima: " + climaTxt() : ""}
+  return `Sos ${n}, la asistente personal de inteligencia artificial de ${quien || "esta persona"}${quien ? " (así le gusta que le digan)" : ""}. Hablás en español rioplatense, con voseo, cálida, respetuosa y paciente, como alguien de confianza que sabe mucho. Hoy es ${fechaLarga(hoy())} de ${ahora.getFullYear()} (${hoy()}), son las ${hhmm(ahora)}.${S.wx ? " Clima: " + climaTxt() : ""}
 
 CÓMO RESPONDER
 - Frases cortas y claras, sin palabras técnicas ni en inglés. Una idea por vez. En general menos de 120 palabras, salvo que pida más detalle.
@@ -828,7 +828,7 @@ function renderWelcome(){
     h += `<div class="card sun"><h2>¡Hola! Soy ${esc(m.config.asistente)}.</h2><p>Estoy para charlar, ayudarte a acordarte de los turnos y las cosas pendientes, buscarte médicos o noticias, explicarte papeles y darte una mano con lo que necesites. Todo lo que hablemos queda guardado.</p>
       <form class="form" id="onbForm"><div class="row"><div><label class="l" for="onbN">¿Cómo te llamás?</label><input class="in" id="onbN" autocomplete="given-name"></div><div><label class="l" for="onbC">¿En qué ciudad vivís?</label><input class="in" id="onbC" placeholder="Ej.: Mendoza"></div></div><button class="btn" type="submit">Empezar</button></form></div>`;
   } else if (!conectado()) {
-    h += `<div class="card sun"><h2>Falta un paso</h2><p>Para que pueda responderte hay que conectar una inteligencia artificial. Lo hace una sola vez alguien de la familia, en dos minutos. Hay opciones gratis.</p><button class="btn" data-con="1">Conectar ahora</button></div>`;
+    h += `<div class="card sun"><h2>Falta un paso</h2><p>Para que pueda responderte hay que conectar una inteligencia artificial. Se hace una sola vez, en dos minutos. Hay opciones gratis.</p><button class="btn" data-con="1">Conectar ahora</button></div>`;
   }
   if (S.wx) h += `<div class="card"><div class="wx"><div class="t">${S.wx.t}°</div><div class="d"><b>${esc(S.wx.geo.nombre)}: ${esc(WX[S.wx.code] || "")}</b><span>Hoy máx. ${S.wx.max}° · mín. ${S.wx.min}°${S.wx.llu != null ? " · lluvia " + S.wx.llu + "%" : ""}<br>Mañana ${esc(WX[S.wx.man.code] || "")}, máx. ${S.wx.man.max}°</span></div></div></div>`;
   const prox = m.citas.filter(c => !c.hecha && c.fecha && diasHasta(c.fecha) >= 0).sort((a,b) => (a.fecha + a.hora) < (b.fecha + b.hora) ? -1 : 1)[0];
@@ -908,7 +908,7 @@ async function sugerir(){
   const b = $("#sugBtn"); if (b) { b.disabled = true; b.textContent = "Pensando ideas…"; }
   try {
     const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:1200, turns:[{ role:"user", text:
-`Sos ${S.mem.config.asistente}, asistente de compañía de una persona mayor (español rioplatense, voseo). Hoy es ${fechaLarga(hoy())}.${S.wx ? " " + climaTxt() : ""} Con lo que sabés de la persona, proponé 3 ideas cortas para hoy: recordar un turno o pendiente cercano, un tema de charla según sus gustos, una actividad suave acorde al clima, llamar a alguien querido, escuchar las noticias, o un cuidado de salud simple (agua, caminar, remedios). Variá los temas.
+`Sos ${S.mem.config.asistente}, asistente personal de IA (español rioplatense, voseo). Hoy es ${fechaLarga(hoy())}.${S.wx ? " " + climaTxt() : ""} Con lo que sabés de la persona, proponé 3 ideas cortas para hoy: recordar un turno o pendiente cercano, un tema de charla según sus gustos, una actividad acorde al clima, llamar a alguien querido, escuchar las noticias, o un cuidado de salud simple (agua, caminar, remedios). Variá los temas.
 Respondé SOLO un objeto JSON: {"ideas":[{"titulo":"máx 6 palabras","texto":"una frase corta","pedido":"lo que la persona le diría a la asistente si toca la idea, en primera persona"}]}
 MEMORIA: ${memParaIA()}` }] });
     const j = parseJSON(r.text), items = Array.isArray(j) ? j : j.ideas;

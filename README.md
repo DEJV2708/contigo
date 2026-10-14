@@ -1,6 +1,6 @@
 # Contigo
 
-Asistente de compañía y ayuda para personas mayores. Una charla que recuerda todo: turnos médicos, cosas pendientes, remedios, familia, gustos. Busca médicos y noticias en internet, explica fotos de recetas o papeles, muestra el clima y lee las respuestas en voz alta.
+Tu asistente IA. Una charla que recuerda todo: turnos médicos, cosas pendientes, remedios, familia, gustos. Busca médicos y noticias en internet, explica fotos de recetas o papeles, muestra el clima y lee las respuestas en voz alta.
 
 **Abrir:** https://dejv2708.github.io/contigo/ (se puede instalar en el celular: menú del navegador → "Agregar a la pantalla de inicio").
 

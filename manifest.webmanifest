@@ -1,7 +1,7 @@
 {
   "name": "Contigo",
   "short_name": "Contigo",
-  "description": "Asistente de compañía para personas mayores: charla que recuerda todo, turnos, pendientes, salud, noticias y clima.",
+  "description": "Tu asistente IA: una charla que recuerda todo, turnos, pendientes, salud, noticias y clima.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
