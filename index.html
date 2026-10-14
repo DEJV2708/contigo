@@ -220,6 +220,8 @@ select.in{appearance:auto}
 .wxdays{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:.3rem .9rem}
 .wxd{display:grid;grid-template-columns:5.2rem 2.2rem 2.8rem 2.3rem 1fr 2.3rem;align-items:center;gap:.45rem;padding:.5rem 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .wxd:last-child{border-bottom:0}
+.wxd.wxh{font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:.45rem 0 .3rem}
+.wxd.wxh span:nth-child(5){text-align:center}
 .wxd svg{width:32px;height:32px}
 .wxd .llu{font-size:.78rem;color:var(--accent);font-weight:700}
 .wxd .mn{color:var(--muted);text-align:right}
@@ -814,9 +816,9 @@ function renderClima(){
   $("#wxLugarNow").textContent = "Ahora: " + w.lugar.nombre + (w.lugar.detalle ? " (" + w.lugar.detalle + ")" : "") + (L ? "" : " · tu ciudad");
   const lo = Math.min(...w.dias.map(d => d.min)), hi = Math.max(...w.dias.map(d => d.max)), span = Math.max(1, hi - lo);
   $("#wxBody").innerHTML = `<div class="wxnow">${wxIcon(w.cur.code)}<div><div class="t">${w.cur.t}°</div><b>${esc((WX[w.cur.code] || "").replace(/^./, c => c.toUpperCase()))}</b><small>Sensación ${w.cur.st}° · Humedad ${w.cur.hum}% · Viento ${w.cur.viento} km/h</small></div></div>
-    <div class="wxdays">${w.dias.map((d, i) => { const dt = parseISO(d.f); const nom = i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIA_CORTO[dt.getDay()] + " " + dt.getDate();
+    <div class="wxdays"><div class="wxd wxh"><span></span><span></span><span>Lluvia</span><span class="mn">Mín</span><span>Rango de la semana</span><span>Máx</span></div>${w.dias.map((d, i) => { const dt = parseISO(d.f); const nom = i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIA_CORTO[dt.getDay()] + " " + dt.getDate();
       return `<div class="wxd"><b>${nom}</b>${wxIcon(d.code)}<span class="llu">${d.llu != null && d.llu >= 10 ? d.llu + "%" : ""}</span><span class="mn">${d.min}°</span><span class="bar"><i style="left:${((d.min - lo) / span * 100).toFixed(0)}%;right:${((hi - d.max) / span * 100).toFixed(0)}%"></i></span><span class="mx">${d.max}°</span></div>`; }).join("")}</div>
-    <div class="note">Pronóstico de Open-Meteo. El % es la probabilidad de lluvia.</div>`;
+    <div class="note">Cada barra muestra la mínima y la máxima del día dentro del rango de toda la semana (de ${lo}° a ${hi}°): cuanto más a la derecha, más calor. Pronóstico de Open-Meteo.</div>`;
 }
 function abrirClima(){ $("#wxRes").innerHTML = ""; $("#wxQ").value = ""; renderClima(); $("#wxSheet").hidden = false; cargarClima(); }
 async function elegirLugar(L){
