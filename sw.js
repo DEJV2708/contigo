@@ -1,6 +1,6 @@
 // Service worker: guarda la "cáscara" de la app para instalarla y abrirla sin conexión.
 // Las llamadas a las IA, al clima y a otros sitios van siempre a la red.
-const CACHE = 'contigo-v12';
+const CACHE = 'contigo-v13';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-maskable.png', './apple-touch-icon.png', './favicon-64.png'];
 
 self.addEventListener('install', e => {

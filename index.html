@@ -264,6 +264,21 @@ select.in{appearance:auto}
 .cathead{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
 .cathead h2{flex:1;min-width:8rem;margin:0}
 .back{border:0;background:none;color:var(--accent);font-weight:700;padding:.4rem 0;min-height:44px;display:inline-flex;align-items:center;gap:.25rem}
+.anl{display:flex;flex-direction:column;gap:.5rem}
+.anitem{display:flex;gap:.75rem;align-items:center;text-align:left;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:.7rem .9rem}
+.anitem img{width:3rem;height:3.6rem;object-fit:cover;border-radius:8px;flex:none;background:var(--surface2)}
+.anitem .tx{flex:1;min-width:0}
+.anitem .tx small{display:block;color:var(--muted);font-size:.82rem}
+.pillw{display:inline-block;font-size:.72rem;font-weight:700;border-radius:99px;padding:.05rem .5rem;background:var(--warn-soft);color:var(--warn)}
+.pillok{display:inline-block;font-size:.72rem;font-weight:700;border-radius:99px;padding:.05rem .5rem;background:var(--ok-soft);color:var(--ok)}
+.vals{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.val{display:grid;grid-template-columns:1fr auto;gap:.2rem .6rem;padding:.6rem .9rem;border-top:1px solid var(--line)}
+.val:first-child{border-top:0}
+.val b{min-width:0;overflow-wrap:anywhere}
+.val .v{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.val small{color:var(--muted);font-size:.8rem;grid-column:1 / -1}
+.val.alto .v,.val.bajo .v{color:var(--warn)}
+.val .hist{grid-column:1 / -1;font-size:.8rem;color:var(--muted)}
 .banner{margin:0 16px;border-radius:14px;padding:.6rem .9rem;background:var(--sun-soft);color:var(--fg);font-size:.9rem;display:flex;gap:.6rem;align-items:center}
 .banner button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:.4rem .8rem;font-weight:700;margin-left:auto}
 </style>
@@ -335,6 +350,13 @@ select.in{appearance:auto}
           <a class="num" href="tel:100"><b>100</b><span>Bomberos</span></a>
         </div>
         <div class="note">Si te sentís muy mal (dolor de pecho, falta de aire, la cara se tuerce, mucha confusión), llamá al 107 o al 911 enseguida.</div>
+      </div>
+      <div class="sec"><h2>Mis análisis</h2>
+        <div class="sub">Subí la foto o el PDF de un análisis y te lo explico en palabras simples. Quedan guardados para comparar.</div>
+        <button class="btn" id="anBtn">Subir un análisis (foto o PDF)</button>
+        <input type="file" id="anIn" accept="image/*,application/pdf" multiple hidden>
+        <div id="anEstado"></div>
+        <div class="anl" id="anList"></div>
       </div>
       <div class="sec"><h2>Mis remedios</h2><div id="medsList"></div>
         <details class="more"><summary>Agregar un remedio</summary>
@@ -461,6 +483,13 @@ select.in{appearance:auto}
     </div>
   </div>
 </div>
+<!-- Detalle de un análisis -->
+<div class="sheet" id="anSheet" hidden>
+  <div class="panel" role="dialog" aria-label="Análisis">
+    <div class="wxhead"><h2 id="anTitle">Análisis</h2><button class="iconbtn" id="anClose" aria-label="Cerrar">✕</button></div>
+    <div id="anBody"></div>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -505,7 +534,7 @@ const LS = {
 const defMem = () => ({
   perfil:{nombre:"",apodo:"",ciudad:"",edad:"",vive_con:"",obra_social:""},
   personas:[], intereses:[], recuerdos:[], preferencias:[], links:[],
-  salud:{condiciones:[], medicamentos:[], medicos:[]},
+  salud:{condiciones:[], medicamentos:[], medicos:[], analisis:[]},
   citas:[], pendientes:[],
   config:{asistente:"Clara", voz:false, rate:0.95, buscar:true, autoEnviar:true, motor:"auto"}
 });
@@ -516,7 +545,7 @@ function normMem(m){
   out.salud = Object.assign(defMem().salud, m.salud || {});
   out.config = Object.assign(defMem().config, m.config || {});
   for (const k of ["personas","intereses","recuerdos","preferencias","links","citas","pendientes"]) if (!Array.isArray(out[k])) out[k] = [];
-  for (const k of ["condiciones","medicamentos","medicos"]) if (!Array.isArray(out.salud[k])) out.salud[k] = [];
+  for (const k of ["condiciones","medicamentos","medicos","analisis"]) if (!Array.isArray(out.salud[k])) out.salud[k] = [];
   return out;
 }
 const SYNCABLE = k => k === "memoria" || k === "cfg" || /^chat-\d{4}-\d{2}-\d{2}$/.test(k);
@@ -623,11 +652,12 @@ const PIDE_WEB = /(busc|averigu|noticia|diario|pas[oó] hoy|clima|pron[oó]stico
 // Una función para cualquier proveedor. turns: [{role, text, image?{type,data}}]. Devuelve {text, fuentes}
 async function llm({ system, turns, onText, search = false, json = false, max = 3000, signal }){
   const p = prov(); if (!conectado()) throw { code:"sin_conexion" };
-  const hasImg = turns.some(t => t.image), m = hasImg ? visionModel() : model();
+  const adj = t => t.images || (t.image ? [t.image] : []);
+  const hasImg = turns.some(t => adj(t).length), m = hasImg ? visionModel() : model();
   const fuentes = [], addSrc = (u, t) => { if (u && !fuentes.some(f => f.u === u) && fuentes.length < 5) fuentes.push({ u, t:t || u }); };
   if (p === "anthropic") {
     const c = await claudeClient();
-    let messages = turns.map(t => ({ role:t.role, content: t.image ? [{ type:"image", source:{ type:"base64", media_type:t.image.type, data:t.image.data } }, { type:"text", text:t.text }] : t.text }));
+    let messages = turns.map(t => ({ role:t.role, content: adj(t).length ? [...adj(t).map(a => a.type === "application/pdf" ? { type:"document", source:{ type:"base64", media_type:a.type, data:a.data } } : { type:"image", source:{ type:"base64", media_type:a.type, data:a.data } }), { type:"text", text:t.text }] : t.text }));
     const params = { model:m, max_tokens:Math.max(max, 4000), system, messages };
     if (/(opus-5|opus-4-[5678]|sonnet-5|sonnet-4-6|fable|haiku-5)/.test(m)) params.output_config = { effort:"low" };
     if (search) params.tools = [{ type:/(opus-5|opus-4-[678]|sonnet-5|sonnet-4-6)/.test(m) ? "web_search_20260209" : "web_search_20250305", name:"web_search", max_uses:3,
@@ -656,7 +686,7 @@ async function llm({ system, turns, onText, search = false, json = false, max = 
   }
   if (p === "gemini") {
     const body = { systemInstruction:{ parts:[{ text:system }] },
-      contents: turns.map(t => ({ role:t.role === "assistant" ? "model" : "user", parts:[ ...(t.image ? [{ inline_data:{ mime_type:t.image.type, data:t.image.data } }] : []), { text:t.text } ] })),
+      contents: turns.map(t => ({ role:t.role === "assistant" ? "model" : "user", parts:[ ...adj(t).map(a => ({ inline_data:{ mime_type:a.type, data:a.data } })), { text:t.text } ] })),
       generationConfig:{ maxOutputTokens:Math.max(max, 8192), ...(json ? { responseMimeType:"application/json" } : {}) } };
     if (search && !json) body.tools = [{ google_search:{} }];
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`;
@@ -677,7 +707,7 @@ async function llm({ system, turns, onText, search = false, json = false, max = 
   const headers = { "Content-Type":"application/json", Authorization:"Bearer " + keyOf() };
   if (p === "openrouter") { headers["X-Title"] = "Contigo"; headers["HTTP-Referer"] = location.origin; }
   const messages = [{ role:"system", content:system }, ...turns.map(t => ({ role:t.role,
-    content: t.image ? [{ type:"text", text:t.text }, { type:"image_url", image_url:{ url:`data:${t.image.type};base64,${t.image.data}` } }] : t.text }))];
+    content: adj(t).length ? [{ type:"text", text:t.text }, ...adj(t).filter(a => a.type !== "application/pdf").map(a => ({ type:"image_url", image_url:{ url:`data:${a.type};base64,${a.data}` } }))] : t.text }))];
   let mm = m;
   const webGroq = p === "groq" && search && !hasImg && !json ? (listOf().find(x => x.web && /compound$/.test(x.id)) || listOf().find(x => x.web)) : null;
   if (webGroq) mm = webGroq.id;
@@ -933,7 +963,8 @@ function memParaIA(){
   return JSON.stringify({
     perfil:m.perfil, personas:m.personas.map(p => ({nombre:p.nombre, relacion:p.relacion, tel:p.tel, nota:p.nota})),
     intereses:m.intereses, recuerdos:m.recuerdos.slice(-60).map(r => r.texto), busquedas_recientes:(m.busquedas || []).slice(-15), catalogos_de_links:[...new Set(m.links.map(l => l.cat))],
-    salud:{condiciones:m.salud.condiciones, medicamentos:m.salud.medicamentos.map(x => ({id:x.id, nombre:x.nombre, dosis:x.dosis, horario:x.horario})), medicos:m.salud.medicos.map(x => ({nombre:x.nombre, especialidad:x.especialidad, tel:x.tel, lugar:x.lugar}))},
+    salud:{condiciones:m.salud.condiciones, medicamentos:m.salud.medicamentos.map(x => ({id:x.id, nombre:x.nombre, dosis:x.dosis, horario:x.horario})), medicos:m.salud.medicos.map(x => ({nombre:x.nombre, especialidad:x.especialidad, tel:x.tel, lugar:x.lugar})),
+      analisis:m.salud.analisis.slice(-5).map(a => ({fecha:a.fecha, titulo:a.titulo, fuera_de_rango:(a.valores || []).filter(v => v.estado === "alto" || v.estado === "bajo").map(v => v.nombre + " " + v.valor + " " + (v.unidad || "") + " (" + v.estado + ")")}))},
     citas_proximas:m.citas.filter(c => !c.hecha && diasHasta(c.fecha) >= -1).map(c => ({id:c.id, titulo:c.titulo, fecha:c.fecha, hora:c.hora, lugar:c.lugar, nota:c.nota})),
     pendientes:m.pendientes.filter(p => p.estado !== "hecho").map(p => ({id:p.id, texto:p.texto, tipo:p.tipo, desde:p.creado}))
   });
@@ -1236,7 +1267,62 @@ function renderAgenda(){
 const telHTML = t => t ? `Tel. <a href="tel:${esc(String(t).replace(/[^\d+]/g, ""))}">${esc(t)}</a>` : "";
 // PAMI solo para quien tiene 70 años o más, o dice que tiene PAMI
 const usaPami = () => Number(S.mem.perfil.edad) >= 70 || /pami/i.test(S.mem.perfil.obra_social || "");
+/* ================= análisis clínicos ================= */
+const leerArchivo = file => new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = ko; r.readAsDataURL(file); });
+async function subirAnalisis(files){
+  files = [...files].slice(0, 6); if (!files.length) return;
+  if (!conectado()) { abrirConexion(); return; }
+  const est = $("#anEstado"), b = $("#anBtn");
+  const hayPdf = files.some(x => x.type === "application/pdf");
+  if (hayPdf && !["gemini", "anthropic"].includes(prov())) { toast("Para leer PDF hace falta Gemini o Claude. Probá con una foto del análisis."); return; }
+  b.disabled = true; est.innerHTML = `<div class="status ok"><span class="thinking"><i></i><i></i><i></i></span> Leyendo el análisis… puede tardar un minuto.</div>`;
+  try {
+    const adjuntos = []; let thumb = "";
+    for (const x of files) {
+      if (x.type === "application/pdf") { if (x.size > 15e6) throw { code:"grande" }; adjuntos.push({ type:"application/pdf", data:await leerArchivo(x) }); }
+      else { adjuntos.push({ type:"image/jpeg", data:(await aImagen(x, 1800, 0.85)).split(",")[1] }); if (!thumb) thumb = await aImagen(x, 240, 0.6); }
+    }
+    const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:6000, turns:[{ role:"user", images:adjuntos, text:
+`Estas imágenes o PDF son un análisis clínico (de sangre, orina u otro estudio) de una persona${S.mem.perfil.edad ? " de " + S.mem.perfil.edad + " años" : ""}. Leelo con cuidado y copiá TODOS los valores tal como figuran.
+Respondé SOLO un objeto JSON:
+{"fecha":"AAAA-MM-DD de la extracción o del informe, o vacío","laboratorio":"nombre o vacío","titulo":"tipo de estudio, corto (ej.: Análisis de sangre completo)",
+"valores":[{"nombre":"Glucemia","valor":"105","unidad":"mg/dL","referencia":"70 - 100","estado":"normal|alto|bajo|"}],
+"resumen":"explicación en español rioplatense, con voseo, en 3 a 6 frases simples: qué está bien, qué está fuera de rango y qué puede significar en general, y qué conviene consultar con el médico. Sin diagnosticar ni alarmar."}
+Si no es un análisis clínico, respondé {"error":"no es un análisis"}.` }] });
+    const j = parseJSON(r.text);
+    if (j.error || !Array.isArray(j.valores)) throw { code:"no_analisis" };
+    const a = { id:nid(), fecha:/^\d{4}-\d{2}-\d{2}$/.test(j.fecha || "") ? j.fecha : hoy(), lab:String(j.laboratorio || "").slice(0, 80), titulo:String(j.titulo || "Análisis").slice(0, 80),
+      resumen:String(j.resumen || "").slice(0, 1500), thumb, cargado:hoy(),
+      valores:j.valores.slice(0, 120).map(v => ({ nombre:String(v.nombre || "").slice(0, 80), valor:String(v.valor ?? "").slice(0, 40), unidad:String(v.unidad || "").slice(0, 20), ref:String(v.referencia || v.ref || "").slice(0, 60), estado:["alto", "bajo", "normal"].includes(v.estado) ? v.estado : "" })).filter(v => v.nombre) };
+    S.mem.salud.analisis.push(a); saveMem();
+    est.innerHTML = ""; abrirAnalisis(a.id);
+  } catch (e) {
+    console.warn("analisis", e);
+    est.innerHTML = `<div class="status err">${e && e.code === "no_analisis" ? "No parece un análisis clínico. Probá con una foto más clara, derecha y con buena luz." : e && e.code === "grande" ? "El PDF es muy grande. Probá con fotos de cada hoja." : e && e.code === "invalid_json" ? "No pude leer bien los valores. Probá con una foto más clara." : aiErr(e)}</div>`;
+  }
+  b.disabled = false;
+}
+const normNom = n => String(n).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+function abrirAnalisis(id){
+  const a = S.mem.salud.analisis.find(x => x.id === id); if (!a) return;
+  const otros = S.mem.salud.analisis.filter(x => x.id !== id).sort((p, q) => p.fecha < q.fecha ? -1 : 1);
+  const fuera = a.valores.filter(v => v.estado === "alto" || v.estado === "bajo");
+  $("#anTitle").textContent = a.titulo;
+  $("#anBody").innerHTML = `<div class="note">${esc(fechaLarga(a.fecha))} de ${parseISO(a.fecha).getFullYear()}${a.lab ? " · " + esc(a.lab) : ""}</div>
+    ${a.resumen ? `<div class="card"><h2>Qué dice, en simple</h2><p style="margin:0">${esc(a.resumen)}</p><p class="note" style="margin:.5rem 0 0">Es una explicación general: la interpretación la hace tu médico.</p></div>` : ""}
+    <div>${fuera.length ? `<span class="pillw">${fuera.length} fuera de rango</span>` : `<span class="pillok">Todo dentro de los valores de referencia</span>`}</div>
+    <div class="vals">${[...fuera, ...a.valores.filter(v => !fuera.includes(v))].map(v => {
+      const prev = otros.filter(o => o.fecha < a.fecha).map(o => ({ f:o.fecha, v:(o.valores || []).find(x => normNom(x.nombre) === normNom(v.nombre)) })).filter(x => x.v).slice(-3);
+      return `<div class="val ${v.estado}"><b>${esc(v.nombre)}${v.estado === "alto" ? " ↑" : v.estado === "bajo" ? " ↓" : ""}</b><span class="v">${esc(v.valor)} ${esc(v.unidad)}</span>${v.ref ? `<small>Referencia: ${esc(v.ref)}</small>` : ""}${prev.length ? `<span class="hist">Antes: ${prev.map(p => esc(p.v.valor) + " (" + parseISO(p.f).getDate() + "/" + (parseISO(p.f).getMonth() + 1) + "/" + String(parseISO(p.f).getFullYear()).slice(2) + ")").join(" · ")}</span>` : ""}</div>`; }).join("")}</div>
+    <button class="btn" data-anpreg="${a.id}">Preguntarle a ${esc(S.mem.config.asistente)} sobre este análisis</button>
+    <button class="btn alt" data-delan="${a.id}">Borrar este análisis</button>`;
+  $("#anSheet").hidden = false;
+}
+
 function renderSalud(){
+  const an = S.mem.salud.analisis.slice().sort((p, q) => p.fecha < q.fecha ? 1 : -1);
+  $("#anList").innerHTML = an.length ? an.map(a => { const n = (a.valores || []).filter(v => v.estado === "alto" || v.estado === "bajo").length;
+    return `<button class="anitem" data-an="${a.id}">${a.thumb ? `<img src="${esc(a.thumb)}" alt="">` : ""}<div class="tx"><b>${esc(a.titulo)}</b><small>${esc(fechaLarga(a.fecha))} de ${parseISO(a.fecha).getFullYear()}${a.lab ? " · " + esc(a.lab) : ""}</small></div>${n ? `<span class="pillw">${n} fuera</span>` : `<span class="pillok">Bien</span>`}</button>`; }).join("") : "";
   $("#numPami").hidden = !usaPami();
   $("#obraIn").placeholder = usaPami() ? "Ej.: PAMI, número de afiliado…" : "Ej.: OSDE, Swiss Medical, número de afiliado…";
   const s = S.mem.salud;
@@ -1625,6 +1711,10 @@ document.addEventListener("click", e => {
     else { if (S.busy && msgKey(S.chat.msgs[S.chat.msgs.length - 1] || {}) === k) return; S.chat.msgs = S.chat.msgs.filter(x => msgKey(x) !== k); S.chat.borrados = [...(S.chat.borrados || []), k]; saveChat(); }
     renderChat(); toast("Mensaje borrado."); return;
   }
+  if (d.an) { abrirAnalisis(d.an); return; }
+  if (d.delan) { if (!t.dataset.sure) { confirmar(t); return; } S.mem.salud.analisis = S.mem.salud.analisis.filter(x => x.id !== d.delan); $("#anSheet").hidden = true; saveMem(); toast("Análisis borrado."); return; }
+  if (d.anpreg) { const a = S.mem.salud.analisis.find(x => x.id === d.anpreg); if (!a) return; $("#anSheet").hidden = true; setTab("charlar");
+    enviar(`Explicame mi ${a.titulo.toLowerCase()} del ${fechaLarga(a.fecha)}. Valores: ${a.valores.map(v => v.nombre + " " + v.valor + " " + v.unidad + (v.ref ? " (ref " + v.ref + ")" : "") + (v.estado && v.estado !== "normal" ? " [" + v.estado + "]" : "")).join("; ").slice(0, 3000)}`); return; }
   if (d.dia !== undefined) { S.verDia = d.dia || null; setTab("charlar"); renderChat(); if (S.verDia) $("#main").scrollTop = 0; else scrollFin(); return; }
   if (d.dellink) { m.links = m.links.filter(x => x.id !== d.dellink); saveMem(); return; }
   if (d.delcat) { return borrar("delcat", () => { m.links = m.links.filter(x => x.cat !== d.delcat); S.linkCat = null; }); }
@@ -1669,6 +1759,10 @@ let pt;
   $("#" + id).addEventListener("input", e => { S.mem.perfil[k] = e.target.value.trim(); renderHeader(); clearTimeout(pt); pt = setTimeout(() => { guardarMem(); if (k === "ciudad") cargarClima().then(renderWelcome); }, 900); }));
 $("#histQ").addEventListener("input", () => renderHist());
 $("#linkQ").addEventListener("input", renderLinks);
+$("#anBtn").onclick = () => $("#anIn").click();
+$("#anIn").onchange = e => { const fs = e.target.files; subirAnalisis(fs).finally(() => { e.target.value = ""; }); };
+$("#anClose").onclick = () => { $("#anSheet").hidden = true; };
+$("#anSheet").addEventListener("click", e => { if (e.target.id === "anSheet") $("#anSheet").hidden = true; });
 $("#wxClose").onclick = () => { $("#wxSheet").hidden = true; };
 $("#wxSheet").addEventListener("click", e => { if (e.target.id === "wxSheet") $("#wxSheet").hidden = true; });
 $("#wxReset").onclick = () => { delete S.mem.config.climaLugar; S.wx = null; saveMem(); cargarClima(true); };
