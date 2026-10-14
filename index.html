@@ -177,11 +177,6 @@ label.l,.l{font-size:.82rem;font-weight:700;color:var(--muted);display:block;mar
 .btn.warn{background:var(--warn);color:#fff}
 .btn:disabled{opacity:.5}
 details.more summary{cursor:pointer;color:var(--accent);font-weight:700;padding:.3rem 0;min-height:44px;display:flex;align-items:center}
-.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.5rem}
-.num{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:.6rem .8rem;text-decoration:none;color:inherit;display:block}
-.num b{font-family:var(--f-disp);font-size:1.5rem;display:block;font-variant-numeric:tabular-nums}
-.num span{font-size:.8rem;color:var(--muted)}
-.num.urg b{color:var(--warn)}
 .note{font-size:.85rem;color:var(--muted)}
 .chips2{display:flex;flex-wrap:wrap;gap:.45rem}
 .chips2 .c{display:inline-flex;align-items:center;gap:.2rem;background:var(--surface);border:1.5px solid var(--line);border-radius:99px;padding:.25rem .3rem .25rem .8rem;font-size:.9rem}
@@ -341,16 +336,6 @@ select.in{appearance:auto}
 
     <!-- SALUD -->
     <section class="tab" id="tab-salud">
-      <div class="sec">
-        <h2>Números útiles</h2>
-        <div class="nums">
-          <a class="num urg" href="tel:107"><b>107</b><span>Emergencias médicas (SAME)</span></a>
-          <a class="num urg" href="tel:911"><b>911</b><span>Policía y emergencias</span></a>
-          <a class="num" href="tel:138" id="numPami" hidden><b>138</b><span>PAMI escucha y responde</span></a>
-          <a class="num" href="tel:100"><b>100</b><span>Bomberos</span></a>
-        </div>
-        <div class="note">Si te sentís muy mal (dolor de pecho, falta de aire, la cara se tuerce, mucha confusión), llamá al 107 o al 911 enseguida.</div>
-      </div>
       <div class="sec"><h2>Mis análisis</h2>
         <div class="sub">Subí la foto o el PDF de un análisis y te lo explico en palabras simples. Quedan guardados para comparar.</div>
         <button class="btn" id="anBtn">Subir un análisis (foto o PDF)</button>
@@ -991,6 +976,8 @@ ${web}
 - Si manda una foto (receta, caja de remedio, factura, carta, diario), explicá qué es y qué hay que hacer, en palabras simples.
 - Salud: no diagnosticás ni cambiás dosis; sugerís consultar al médico. Si cuenta dolor de pecho, falta de aire, cara torcida, no poder mover un brazo, confusión repentina, una caída con golpe en la cabeza o sangrado fuerte: decile que llame YA al 107 o al 911 y avise a un familiar.
 - Estafas: si menciona llamadas o mensajes pidiendo claves, códigos, datos del banco o plata para un familiar en apuros, alertá con calma: que corte y llame a un familiar. Nunca pidas claves.
+- SÉ PROACTIVA: después de responder, ofrecé el próximo paso concreto que le ahorre trabajo, en forma de UNA pregunta corta al final. Ejemplos: si pregunta cómo cambiar el capacitor de un ventilador, explicá lo básico y la precaución de seguridad, recomendá un técnico si es riesgoso y preguntá "¿Querés que te busque un técnico en ${S.mem.perfil.ciudad || "tu zona"}?"; si cuenta que le duele algo, preguntá si quiere que le busques un especialista o le anotes un turno; si menciona un evento, ofrecé agendarlo; si pide una receta, ofrecé la lista de compras. Si responde que sí, hacelo directamente (buscá, anotá o armá la lista) sin volver a preguntar.
+- Junto con esa pregunta, sugerí de 1 a 3 respuestas rápidas que la persona pueda tocar (operación "opciones" abajo), en primera persona y cortas (ej.: "Sí, buscame uno en ${S.mem.perfil.ciudad || "mi zona"}", "No, lo hago yo", "Explicame paso a paso").
 - De vez en cuando, si la charla lo permite, proponé un tema que le pueda gustar según sus intereses, o una actividad suave (caminar, llamar a alguien querido, tomar agua).
 
 MEMORIA (lo que ya sabés):
@@ -1009,7 +996,8 @@ AL FINAL de cada respuesta escribí en una línea aparte ${MARK} y después un a
 {"op":"preferencia","texto":"Cuando le paso noticias, incluir siempre los links"}  (cómo le gusta que le respondas: guardala cuando te corrija, se queje, o diga que algo le gustó o no; frases cortas y concretas)
 {"op":"medicamento","nombre":"Enalapril","dosis":"10 mg","horario":"mañana y noche"}   {"op":"medicamento_quitar","id":"..."}
 {"op":"medico","nombre":"Dra. Gómez","especialidad":"clínica","tel":"...","lugar":"..."}  (también los que encuentres buscando y la persona quiera guardar)
-{"op":"condicion","texto":"presión alta"}`;
+{"op":"condicion","texto":"presión alta"}
+{"op":"opciones","lista":["Sí, buscame un técnico en la zona","No, gracias"]}  (respuestas rápidas para tu pregunta del final; máximo 3, cada una de menos de 45 letras)`;
 }
 
 /* ================= aplicar cambios de memoria ================= */
@@ -1041,6 +1029,7 @@ function aplicar(ops){
           notas.push("Remedio: " + s(o.nombre)); break; }
         case "medicamento_quitar": { const n0 = m.salud.medicamentos.length; m.salud.medicamentos = m.salud.medicamentos.filter(y => y.id !== o.id); if (m.salud.medicamentos.length < n0) notas.push("Saqué un remedio de la lista"); break; }
         case "medico": { if (!s(o.nombre) && !s(o.especialidad)) break; m.salud.medicos.push({id:nid(), nombre:s(o.nombre), especialidad:s(o.especialidad), tel:s(o.tel), lugar:s(o.lugar)}); notas.push("Médico: " + (s(o.nombre) || s(o.especialidad))); break; }
+        case "opciones": { const l = (Array.isArray(o.lista) ? o.lista : []).map(x => s(x).slice(0, 60)).filter(Boolean).slice(0, 3); if (l.length) S.opcPend = l; break; }
         case "condicion": { const t = s(o.texto); if (t && !m.salud.condiciones.some(x => x.toLowerCase() === t.toLowerCase())) { m.salud.condiciones.push(t); notas.push("Para tener en cuenta: " + t); } break; }
       }
     } catch (e) { console.warn("op", o, e); }
@@ -1067,8 +1056,10 @@ const xHTML = x => `<button class="mx" data-delmsg="${esc(msgKey(x))}" aria-labe
 function msgHTML(x, i){
   if (x.r === "me") return `<div class="msg me">${xHTML(x)}${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="Foto enviada">` : ""}${md(x.t)}<div class="time">${hhmm(x.ts)}</div></div>`;
   const acts = (x.notas || []).map(n => `<span class="chip">${ICO.check}${esc(n)}</span>`).join("");
+  const ultima = i >= 0 && i === S.chat.msgs.length - 1 && !S.verDia && !S.busy;
+  const opc = ultima && (x.opciones || []).length ? `<div class="quick" style="margin-top:.6rem">${x.opciones.map(o => `<button data-q="${esc(o)}">${esc(o)}</button>`).join("")}</div>` : "";
   const src = (x.fuentes || []).length ? `<div class="src"><span>Links</span>${x.fuentes.map(f => `<a href="${esc(f.u)}" target="_blank" rel="noopener"><b>${esc(dominio(f))}</b><span>${esc(f.t !== dominio(f) ? f.t : "Abrir")}</span>${ICO.ext}</a>`).join("")}</div>` : "";
-  return `<div class="msg ai">${x.t ? xHTML(x) : ""}${x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> ${x.buscando ? "buscando…" : "pensando…"}</span>`}${x.t ? src : ""}
+  return `<div class="msg ai">${x.t ? xHTML(x) : ""}${x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> ${x.buscando ? "buscando…" : "pensando…"}</span>`}${x.t ? src : ""}${x.t ? opc : ""}
     ${x.t && i >= 0 ? `<div class="acts"><button class="listen" data-say="${i}">${ICO.spk}Escuchar</button>${acts}${!x.err ? `<button class="meh" data-meh="${i}">No me sirvió</button>` : ""}</div>` : ""}</div>`;
 }
 // Días de la última semana con charla (sin hoy), del más viejo al más nuevo
@@ -1194,8 +1185,9 @@ Priorizá sitios argentinos y de ${S.mem.perfil.ciudad || "su zona"} si correspo
     }
     ai.t = visible(r.text) || ((r.fuentes || []).length ? "Encontré esto. Tocá un link para abrirlo:" : "No me salió la respuesta. ¿Me lo pedís de otra forma?");
     ai.fuentes = r.fuentes;
-    S.catPend = null;
+    S.catPend = null; S.opcPend = null;
     ai.notas = aplicar(parseOps(r.text));
+    if (S.opcPend) { ai.opciones = S.opcPend; S.opcPend = null; }
     const nuevos = [...(ai.fuentes || []), ...(ai.t.match(URL_RX) || []).map(u => ({ u })), ...(texto.match(URL_RX) || []).map(u => ({ u }))];
     if (nuevos.length) {
       const porSitio = catPorSitio(nuevos.map(x => ({ u:x.u, dom:dominioDe(x.u, x.t) })));
@@ -1323,7 +1315,6 @@ function renderSalud(){
   const an = S.mem.salud.analisis.slice().sort((p, q) => p.fecha < q.fecha ? 1 : -1);
   $("#anList").innerHTML = an.length ? an.map(a => { const n = (a.valores || []).filter(v => v.estado === "alto" || v.estado === "bajo").length;
     return `<button class="anitem" data-an="${a.id}">${a.thumb ? `<img src="${esc(a.thumb)}" alt="">` : ""}<div class="tx"><b>${esc(a.titulo)}</b><small>${esc(fechaLarga(a.fecha))} de ${parseISO(a.fecha).getFullYear()}${a.lab ? " · " + esc(a.lab) : ""}</small></div>${n ? `<span class="pillw">${n} fuera</span>` : `<span class="pillok">Bien</span>`}</button>`; }).join("") : "";
-  $("#numPami").hidden = !usaPami();
   $("#obraIn").placeholder = usaPami() ? "Ej.: PAMI, número de afiliado…" : "Ej.: OSDE, Swiss Medical, número de afiliado…";
   const s = S.mem.salud;
   $("#medsList").innerHTML = s.medicamentos.length ? `<div class="sec">${s.medicamentos.map(x => `<div class="item"><div class="tx"><b>${esc(x.nombre)}</b>${x.dosis ? " " + esc(x.dosis) : ""}<small>${esc(x.horario || "")}</small></div><button class="del" data-delmed="${x.id}" aria-label="Quitar remedio">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Sin remedios anotados.</div>`;
