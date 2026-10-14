@@ -67,7 +67,11 @@ nav.bottom .pill{border-radius:99px;padding:.15rem 1rem;display:grid;place-items
 /* Chat */
 .chatwrap{display:flex;flex-direction:column;min-height:100%}
 .msgs{flex:1;padding:1rem 16px .5rem;display:flex;flex-direction:column;gap:.8rem}
-.msg{max-width:88%;padding:.75rem 1rem;border-radius:var(--r);overflow-wrap:anywhere}
+.msg{max-width:88%;padding:.75rem 1rem;border-radius:var(--r);overflow-wrap:anywhere;position:relative}
+.mx{position:absolute;top:-12px;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;font-size:1rem;line-height:1;padding:0;z-index:1}
+.msg.ai .mx{right:-10px}
+.msg.me .mx{left:-10px}
+.mx[data-sure]{background:var(--warn);border-color:var(--warn);color:#fff}
 .msg.me{align-self:flex-end;background:var(--me);color:var(--me-fg);border-bottom-right-radius:6px}
 .msg.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px}
 .msg p{margin:.2rem 0}
@@ -114,6 +118,16 @@ nav.bottom .pill{border-radius:99px;padding:.15rem 1rem;display:grid;place-items
 .attach button{border:0;background:none;color:var(--warn);font-weight:700;text-decoration:underline}
 
 /* Bienvenida / tarjetas */
+.dias{display:flex;gap:.5rem;overflow-x:auto;padding:.6rem 16px;border-bottom:1px solid var(--line);background:var(--bg);position:sticky;top:0;z-index:3;scrollbar-width:none}
+.dias::-webkit-scrollbar{display:none}
+.dia{flex:none;width:8.6rem;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:.4rem .7rem;min-height:3.4rem}
+.dia b{display:block;font-size:.82rem}
+.dia span{display:block;font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dia[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+.dia[aria-pressed="true"] span{color:inherit;opacity:.85}
+.viendo{margin:.8rem 16px 0;border-radius:14px;padding:.6rem .9rem;background:var(--surface2);display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.9rem}
+.viendo b{flex:1;min-width:10rem}
+.viendo button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:.45rem .9rem;font-weight:700;min-height:44px}
 .welcome{padding:1rem 16px 0;display:flex;flex-direction:column;gap:.9rem}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1rem}
 .card h2,.sec h2{font-family:var(--f-disp);font-size:1.12rem;margin:0 0 .5rem;font-weight:700;text-wrap:balance}
@@ -270,6 +284,8 @@ select.in{appearance:auto}
     <!-- CHARLAR -->
     <section class="tab on" id="tab-charlar">
       <div class="chatwrap">
+        <div class="dias" id="diasBar" hidden aria-label="Charlas de la última semana"></div>
+        <div id="viendoBox"></div>
         <div class="welcome" id="welcome"></div>
         <div class="msgs" id="msgs" aria-live="polite"></div>
         <div class="composer">
@@ -504,7 +520,7 @@ const S = { mem:normMem(LS.get("memoria")), chat:{fecha:hoy(), msgs:[]}, prev:[]
   busy:false, ctl:null, img:null, imgThumb:null, tab:"charlar" };
 const guardarMem = () => { S.mem._ts = Date.now(); LS.set("memoria", S.mem); };
 const saveMem = () => { guardarMem(); renderAll(); };
-const saveChat = () => LS.set("chat-" + S.chat.fecha, {fecha:S.chat.fecha, msgs:S.chat.msgs});
+const saveChat = () => LS.set("chat-" + S.chat.fecha, {fecha:S.chat.fecha, tema:S.chat.tema, borrados:S.chat.borrados, msgs:S.chat.msgs});
 function chatsGuardados(){ return LS.keys().filter(k => /^chat-\d{4}-\d{2}-\d{2}$/.test(k)).map(k => LS.get(k)).filter(d => d && d.fecha).sort((a,b) => a.fecha < b.fecha ? 1 : -1); }
 function podarFotos(dias = 30){
   const lim = iso(new Date(Date.now() - dias * 864e5));
@@ -956,23 +972,57 @@ function historial(){
   return all.filter(x => x.t && !x.err).slice(-36).map(x => ({ role:x.r === "me" ? "user" : "assistant",
     text:(x.foto || x.fotoVieja ? "[Mandó una foto] " : "") + x.t + ((x.fuentes || []).length ? "\n[Fuentes de esta respuesta: " + x.fuentes.map(f => f.t + " " + f.u).join(" | ") + "]" : "") }));
 }
+const msgKey = x => x.id || (x.ts + "|" + x.r);
+const xHTML = x => `<button class="mx" data-delmsg="${esc(msgKey(x))}" aria-label="Borrar este mensaje">✕</button>`;
 function msgHTML(x, i){
-  if (x.r === "me") return `<div class="msg me">${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="Foto enviada">` : ""}${md(x.t)}<div class="time">${hhmm(x.ts)}</div></div>`;
+  if (x.r === "me") return `<div class="msg me">${xHTML(x)}${x.foto ? `<img class="thumb" src="${esc(x.foto)}" alt="Foto enviada">` : ""}${md(x.t)}<div class="time">${hhmm(x.ts)}</div></div>`;
   const acts = (x.notas || []).map(n => `<span class="chip">${ICO.check}${esc(n)}</span>`).join("");
   const src = (x.fuentes || []).length ? `<div class="src"><span>Links</span>${x.fuentes.map(f => `<a href="${esc(f.u)}" target="_blank" rel="noopener"><b>${esc(dominio(f))}</b><span>${esc(f.t !== dominio(f) ? f.t : "Abrir")}</span>${ICO.ext}</a>`).join("")}</div>` : "";
-  return `<div class="msg ai">${x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> ${x.buscando ? "buscando…" : "pensando…"}</span>`}${x.t ? src : ""}
+  return `<div class="msg ai">${x.t ? xHTML(x) : ""}${x.t ? md(x.t) : `<span class="thinking"><i></i><i></i><i></i> ${x.buscando ? "buscando…" : "pensando…"}</span>`}${x.t ? src : ""}
     ${x.t && i >= 0 ? `<div class="acts"><button class="listen" data-say="${i}">${ICO.spk}Escuchar</button>${acts}${!x.err ? `<button class="meh" data-meh="${i}">No me sirvió</button>` : ""}</div>` : ""}</div>`;
 }
+// Días de la última semana con charla (sin hoy), del más viejo al más nuevo
+function diasSemana(){
+  const lim = iso(new Date(Date.now() - 7 * 864e5));
+  return chatsGuardados().filter(d => d.fecha !== hoy() && d.fecha >= lim && (d.msgs || []).some(x => x.r === "me")).reverse();
+}
+const temaFallback = d => { const p = (d.msgs || []).find(x => x.r === "me"); return p ? p.t.replace(/\s+/g, " ").slice(0, 40) : ""; };
+function renderDias(){
+  const ds = diasSemana(), bar = $("#diasBar");
+  bar.hidden = !ds.length; if (!ds.length) return;
+  const nom = f => { const n = diasHasta(f); return n === -1 ? "Ayer" : DIAS[parseISO(f).getDay()].replace(/^./, c => c.toUpperCase()) + " " + parseISO(f).getDate(); };
+  bar.innerHTML = ds.map(d => `<button class="dia" data-dia="${d.fecha}" aria-pressed="${S.verDia === d.fecha}"><b>${esc(nom(d.fecha))}</b><span>${esc(d.tema || temaFallback(d))}</span></button>`).join("")
+    + `<button class="dia" data-dia="" aria-pressed="${!S.verDia}"><b>Hoy</b><span>${S.chat.msgs.length ? esc(S.chat.tema || temaFallback(S.chat) || "") : "Charla nueva"}</span></button>`;
+  const act = bar.querySelector('[aria-pressed="true"]'); if (act) bar.scrollLeft = act.offsetLeft - bar.clientWidth + act.offsetWidth + 16;
+}
 function renderChat(){
-  let h = "";
-  if (!S.chat.msgs.length && S.prev[0]?.msgs?.length) {
-    h += `<div class="dayline">Lo último que hablamos, ${esc(cuando(S.prev[0].fecha))}</div>`;
-    h += S.prev[0].msgs.slice(-4).map(x => msgHTML(x, -1)).join("");
-    h += `<div class="dayline">Hoy</div>`;
+  renderDias();
+  if (S.verDia) {
+    const d = LS.get("chat-" + S.verDia) || { msgs:[] };
+    $("#viendoBox").innerHTML = `<div class="viendo"><b>Charla del ${esc(fechaLarga(S.verDia))}${d.tema ? " · " + esc(d.tema) : ""}</b><button data-dia="">Volver a hoy</button></div>`;
+    $("#msgs").innerHTML = (d.msgs || []).map(x => msgHTML(x, -1)).join("");
+    $("#welcome").innerHTML = "";
+    return;
   }
-  h += S.chat.msgs.map(msgHTML).join("");
-  $("#msgs").innerHTML = h;
+  $("#viendoBox").innerHTML = "";
+  $("#msgs").innerHTML = S.chat.msgs.map(msgHTML).join("");
   renderWelcome();
+}
+// Pone unas palabras de guía a cada día de la semana (una sola llamada a la IA por día)
+async function temasDias(){
+  if (!conectado() || LS.get("temasAt") === hoy()) return;
+  const faltan = diasSemana().filter(d => !d.tema);
+  if (!faltan.length) { LS.set("temasAt", hoy()); return; }
+  try {
+    const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:800, turns:[{ role:"user", text:
+`Para cada día, escribí de 2 a 5 palabras que recuerden de qué se habló (ej.: "Diarios y plomero", "Turno cardiólogo", "Regalo Día de la Madre"). Español rioplatense, sin punto final.
+${faltan.map(d => d.fecha + ": " + (d.msgs || []).filter(x => x.r === "me").map(x => x.t).join(" | ").slice(0, 600)).join("\n")}
+Respondé SOLO: {"temas":{"AAAA-MM-DD":"palabras"}}` }] });
+    const j = parseJSON(r.text), t = (j && j.temas) || {};
+    for (const d of faltan) { const tema = String(t[d.fecha] || "").trim().slice(0, 50); if (tema) { const doc = LS.get("chat-" + d.fecha); if (doc) { doc.tema = tema; LS.set("chat-" + d.fecha, doc); } } }
+    LS.set("temasAt", hoy());
+    renderDias();
+  } catch (e) { console.warn("temas", e); }
 }
 function scrollFin(){ const m = $("#main"); m.scrollTop = m.scrollHeight; }
 const calHTML = f => { const d = parseISO(f); return `<div class="cal"><div class="m">${MESES[d.getMonth()].slice(0,3)}</div><div class="d">${d.getDate()}</div></div>`; };
@@ -1005,6 +1055,7 @@ async function aImagen(file, lado, calidad){
 
 async function enviar(texto){
   texto = String(texto || "").trim();
+  if (S.verDia) { S.verDia = null; renderChat(); }
   if (S.busy) return;
   if (!texto && !S.img) return;
   desbloquearAudio();
@@ -1364,12 +1415,15 @@ function fusionar(k, rem){
   }
   if (/^chat-/.test(k)) {
     const key = x => x.id || (x.ts + "|" + x.r), map = new Map(), vistos = new Set();
+    const bl = (loc && loc.borrados) || [], br = rem.borrados || [], borr = new Set([...bl, ...br]);
     ((loc && loc.msgs) || []).forEach(x => map.set(key(x), x));
-    let cambio = false, faltan = false;
+    let cambio = br.some(b => !bl.includes(b)), faltan = bl.some(b => !br.includes(b));
     for (const x of rem.msgs || []) { const kk = key(x); vistos.add(kk); const l = map.get(kk);
       if (!l || (x.t || "").length > (l.t || "").length) { map.set(kk, x); cambio = true; } }
-    for (const kk of map.keys()) if (!vistos.has(kk)) faltan = true;
-    if (cambio) LS.set(k, { fecha:rem.fecha || (loc && loc.fecha), msgs:[...map.values()].sort((a,b) => (a.ts || 0) - (b.ts || 0)) }, { sync:false });
+    for (const kk of [...map.keys()]) { if (borr.has(kk)) { map.delete(kk); continue; } if (!vistos.has(kk)) faltan = true; }
+    const tema = (loc && loc.tema) || rem.tema;
+    if (rem.tema && !(loc && loc.tema)) cambio = true;
+    if (cambio) LS.set(k, { fecha:rem.fecha || (loc && loc.fecha), tema, borrados:[...borr], msgs:[...map.values()].sort((a,b) => (a.ts || 0) - (b.ts || 0)) }, { sync:false });
     if (faltan) marcarSucio(k);
     return cambio;
   }
@@ -1505,6 +1559,14 @@ document.addEventListener("click", e => {
   if (d.catback) { S.linkCat = null; renderLinks(); return; }
   if (d.catren) { const fm = $("#catRenForm"); fm.hidden = !fm.hidden; if (!fm.hidden) $("#catRenIn").focus(); return; }
   if (t.id === "ordenarBtn") { ordenarVarios(); return; }
+  if (d.delmsg) {
+    if (!t.dataset.sure) { t.dataset.sure = "1"; t.textContent = "?"; t.setAttribute("aria-label", "Tocá otra vez para borrar"); toast("Tocá otra vez la ✕ para borrar el mensaje."); setTimeout(() => { if (t.isConnected) { delete t.dataset.sure; t.textContent = "✕"; } }, 4000); return; }
+    const k = d.delmsg;
+    if (S.verDia) { const doc = LS.get("chat-" + S.verDia); if (doc) { doc.msgs = (doc.msgs || []).filter(x => msgKey(x) !== k); doc.borrados = [...(doc.borrados || []), k]; LS.set("chat-" + S.verDia, doc); } }
+    else { if (S.busy && msgKey(S.chat.msgs[S.chat.msgs.length - 1] || {}) === k) return; S.chat.msgs = S.chat.msgs.filter(x => msgKey(x) !== k); S.chat.borrados = [...(S.chat.borrados || []), k]; saveChat(); }
+    renderChat(); toast("Mensaje borrado."); return;
+  }
+  if (d.dia !== undefined) { S.verDia = d.dia || null; setTab("charlar"); renderChat(); if (S.verDia) $("#main").scrollTop = 0; else scrollFin(); return; }
   if (d.dellink) { m.links = m.links.filter(x => x.id !== d.dellink); saveMem(); return; }
   if (d.delcat) { return borrar("delcat", () => { m.links = m.links.filter(x => x.cat !== d.delcat); S.linkCat = null; }); }
   if (d.lugar !== undefined) { const L = (S.lugaresRes || [])[Number(d.lugar)]; if (L) elegirLugar(L); return; }
@@ -1579,7 +1641,7 @@ $("#wipeYes").onclick = () => { const keep = LS.get("cfg"); LS.keys().forEach(k 
 
 /* ================= arranque ================= */
 function cargarDatos(){
-  const today = LS.get("chat-" + hoy()); S.chat = {fecha:hoy(), msgs:today?.msgs || []};
+  const today = LS.get("chat-" + hoy()); S.chat = {fecha:hoy(), tema:today?.tema, borrados:today?.borrados || [], msgs:today?.msgs || []};
   S.prev = chatsGuardados().filter(d => d.fecha !== hoy()).slice(0, 3);
   const sg = LS.get("sugerencias"); S.sug = sg?.fecha === hoy() ? sg : null;
 }
@@ -1587,10 +1649,11 @@ try { setSize(localStorage.getItem("contigo-size") || "m"); } catch { setSize("m
 podarFotos(30);
 cargarDatos();
 renderAll(); scrollFin();
+temasDias();
 cargarClima().then(() => { renderWelcome(); if (conectado() && S.mem.perfil.nombre && !S.sug && (S.chat.msgs.length || S.prev.length)) sugerir(); });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) return;
-  if (S.chat.fecha !== hoy() && !S.busy) { S.prev.unshift({fecha:S.chat.fecha, msgs:S.chat.msgs}); S.chat = {fecha:hoy(), msgs:[]}; S.sug = null; renderAll(); }
+  if (S.chat.fecha !== hoy() && !S.busy) { S.prev.unshift({fecha:S.chat.fecha, msgs:S.chat.msgs}); S.chat = {fecha:hoy(), msgs:[]}; S.sug = null; S.verDia = null; renderAll(); temasDias(); }
   sincronizar();
 });
 (async () => {
