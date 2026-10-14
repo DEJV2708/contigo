@@ -242,6 +242,14 @@ select.in{appearance:auto}
 .cat .lk a b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat .lk a small{display:block;color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat .lk .home{font-size:.78rem;flex:none}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(7.4rem,1fr));gap:.6rem}
+.catcard{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);padding:.85rem .9rem;display:flex;flex-direction:column;gap:.45rem;min-height:6.6rem;min-width:0}
+.catcard .ic{width:2.4rem;height:2.4rem;border-radius:12px;display:grid;place-items:center;background:var(--surface2);color:var(--accent);font-family:var(--f-disp);font-weight:700;font-size:1.15rem}
+.catcard b{font-family:var(--f-disp);font-size:1.02rem;line-height:1.2;overflow-wrap:anywhere}
+.catcard small{color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cathead{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.cathead h2{flex:1;min-width:8rem;margin:0}
+.back{border:0;background:none;color:var(--accent);font-weight:700;padding:.4rem 0;min-height:44px;display:inline-flex;align-items:center;gap:.25rem}
 .banner{margin:0 16px;border-radius:14px;padding:.6rem .9rem;background:var(--sun-soft);color:var(--fg);font-size:.9rem;display:flex;gap:.6rem;align-items:center}
 .banner button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:.4rem .8rem;font-weight:700;margin-left:auto}
 </style>
@@ -357,7 +365,7 @@ select.in{appearance:auto}
     </section>
     <!-- LINKS -->
     <section class="tab" id="tab-links">
-      <div class="sec"><h2>Mis links</h2><div class="sub">Se guardan solos los links que aparecen en las charlas, ordenados por tema. Podés borrar un link o un catálogo entero.</div>
+      <div class="sec"><h2>Mis links</h2><div class="sub">Se guardan solos los links de las charlas, ordenados por tema. Tocá un catálogo para ver sus links.</div>
         <input class="in" id="linkQ" placeholder="Buscar en mis links">
       </div>
       <div class="sec" id="linksList"></div>
@@ -1048,7 +1056,18 @@ Priorizá sitios argentinos y de ${S.mem.perfil.ciudad || "su zona"} si correspo
     S.catPend = null;
     ai.notas = aplicar(parseOps(r.text));
     const nuevos = [...(ai.fuentes || []), ...(ai.t.match(URL_RX) || []).map(u => ({ u })), ...(texto.match(URL_RX) || []).map(u => ({ u }))];
-    if (nuevos.length) { const cat = guardarLinks(nuevos, S.catPend || (modoBuscar ? "Búsquedas" : "Varios")); if (cat) { ai.notas.push("Links guardados en “" + cat + "”"); } }
+    if (nuevos.length) {
+      const porSitio = catPorSitio(nuevos.map(x => ({ u:x.u, dom:dominioDe(x.u, x.t) })));
+      const cat = guardarLinks(nuevos, S.catPend || porSitio || "Varios");
+      if (cat) {
+        ai.notas.push("Links guardados en “" + cat + "”");
+        if (cat === "Varios" && S.nuevosLinks.length) {
+          // la IA no dijo el catálogo: se lo pregunto aparte y actualizo el aviso
+          const ids = S.nuevosLinks.slice(), nota = ai.notas.length - 1;
+          clasificarLinks(ids, texto).then(n => { if (!n) return; const c = (S.mem.links.find(l => l.id === ids[0]) || {}).cat; if (c) { ai.notas[nota] = "Links guardados en “" + c + "”"; renderChat(); saveChat(); } }).catch(e => console.warn("clasificar", e));
+        }
+      }
+    }
     S.catPend = null;
     ai.ts = Date.now();
     if (ai.notas.length) saveMem();
@@ -1139,27 +1158,82 @@ function renderAll(){ renderHeader(); renderChat(); renderAgenda(); renderSalud(
 function dominioDe(u, t){ const tt = String(t || ""); if (/^[\w-]+(\.[\w-]+)+$/.test(tt)) return tt.replace(/^www\./, "");
   try { const h = new URL(u).hostname.replace(/^www\./, ""); return /vertexaisearch|googleusercontent/.test(h) ? "" : h; } catch { return ""; } }
 function guardarLinks(lista, cat){
-  const m = S.mem; let n = 0; cat = (cat || "Varios").trim().slice(0, 40);
+  const m = S.mem; let n = 0; S.nuevosLinks = []; cat = (cat || "Varios").trim().slice(0, 40);
   const existente = m.links.map(l => l.cat).find(c => c.toLowerCase() === cat.toLowerCase()); if (existente) cat = existente;
   for (const x of lista) {
     const u = String(x.u || "").trim(); if (!/^https?:\/\//.test(u)) continue;
     const dom = dominioDe(u, x.t);
     if (m.links.some(l => l.u === u || (dom && l.dom === dom && l.cat === cat && l.t === (x.t || dom)))) continue;
-    m.links.push({ id:nid(), u, t:String(x.t || dom || u).slice(0, 140), dom, cat, fecha:hoy() }); n++;
+    const id = nid(); m.links.push({ id, u, t:String(x.t || dom || u).slice(0, 140), dom, cat, fecha:hoy() }); S.nuevosLinks.push(id); n++;
   }
   if (m.links.length > 600) m.links = m.links.slice(-600);
   return n ? cat : "";
 }
 const URL_RX = /https?:\/\/[^\s<>()"']+[^\s<>()"'.,;:!?]/g;
+// Catálogo por el sitio, sin preguntarle a la IA (diarios, tiendas, salud…)
+const CAT_DOM = [
+  ["Diarios", /(clarin|lanacion|infobae|pagina12|ambito|cronista|perfil\.com|losandes|mdzol|elsol|unidiversidad|tn\.com|cronica|lavoz|eldia|unosantafe|lacapital|rionegro|lagaceta|eldestape|minutouno|letrap|telam|bbc\.|elpais|cnn|noticias|diario|news)/i],
+  ["Deportes", /(ole\.com|tycsports|espn|promiedos|deportes)/i],
+  ["Compras", /(mercadolibre|falabella|fravega|garbarino|musimundo|coto|carrefour|jumbo|disco\.com|dia\.com|tiendamia|amazon|naldo|megatone|cetrogar|tienda|shop)/i],
+  ["Salud", /(osde|swissmedical|galeno|medife|omint|pami|farmac|clinica|hospital|medic|salud)/i],
+  ["Trámites", /(anses|afip|arca\.gob|gob\.ar|registro|renaper|tramite)/i],
+  ["Recetas", /(receta|cocina|paulinacocina|cookpad)/i],
+  ["Viajes", /(despegar|booking|airbnb|aerolineas|flybondi|jetsmart|turismo|viaje)/i]
+];
+function catPorSitio(links){
+  const votos = {}; for (const l of links) { const k = CAT_DOM.find(([, rx]) => rx.test((l.dom || "") + " " + l.u)); if (k) votos[k[0]] = (votos[k[0]] || 0) + 1; }
+  const top = Object.entries(votos).sort((a, b) => b[1] - a[1])[0];
+  return top && top[1] * 2 >= links.length ? top[0] : "";
+}
+// La IA ordena los links en catálogos (reusa los que ya existen)
+async function clasificarLinks(ids, pedido){
+  const m = S.mem, ls = m.links.filter(l => ids.includes(l.id)); if (!ls.length || !conectado()) return 0;
+  const cats = [...new Set(m.links.map(l => l.cat).filter(c => c !== "Varios" && c !== "Búsquedas"))];
+  const r = await llm({ system:"Respondés únicamente con JSON válido, sin texto antes ni después.", json:true, max:2000, turns:[{ role:"user", text:
+`Ordená estos links guardados en catálogos por tema, para una app personal. Nombres cortos en español, de 1 a 4 palabras (ej.: Diarios, Compras Día de la Madre, Médicos, Recetas, Trámites, Viajes). Si encajan, usá estos catálogos que ya existen: ${JSON.stringify(cats)}. No uses "Varios".${pedido ? "\nLo que la persona había pedido: " + pedido : ""}
+Links: ${JSON.stringify(ls.map(l => ({ id:l.id, sitio:l.dom || l.u.slice(0, 80), titulo:l.t })))}
+Respondé SOLO: {"catalogos":{"<id>":"<catálogo>"}}` }] });
+  const j = parseJSON(r.text), mapa = (j && j.catalogos) || {}; let n = 0;
+  for (const l of m.links) { const c = String(mapa[l.id] || "").trim().slice(0, 40); if (c && ids.includes(l.id)) { const ex = cats.find(x => x.toLowerCase() === c.toLowerCase()); l.cat = ex || c; n++; } }
+  if (n) saveMem();
+  return n;
+}
+async function ordenarVarios(){
+  const ids = S.mem.links.filter(l => l.cat === "Varios" || l.cat === "Búsquedas").map(l => l.id);
+  if (!ids.length) { toast("No hay links sin ordenar."); return; }
+  const b = $("#ordenarBtn"); if (b) { b.disabled = true; b.textContent = "Ordenando…"; }
+  // primero lo obvio por el sitio, después la IA con el resto
+  for (const l of S.mem.links) if (ids.includes(l.id)) { const c = catPorSitio([l]); if (c) l.cat = c; }
+  saveMem();
+  const resto = S.mem.links.filter(l => ids.includes(l.id) && (l.cat === "Varios" || l.cat === "Búsquedas")).map(l => l.id);
+  try { if (resto.length) await clasificarLinks(resto); toast("Listo, links ordenados."); } catch (e) { console.warn(e); toast(aiErr(e)); }
+  S.linkCat = null; renderLinks();
+}
+const linkHTML = l => `<div class="lk"><a href="${esc(l.u)}" target="_blank" rel="noopener"><b>${esc(l.t)}</b><small>${l.dom && l.dom !== l.t ? esc(l.dom) + " · " : ""}${esc(l.cat)} · ${esc(cuando(l.fecha))}</small></a>${l.dom && /vertexaisearch/.test(l.u) ? `<a class="home" href="https://${esc(l.dom)}" target="_blank" rel="noopener">sitio</a>` : ""}<button class="del" data-dellink="${l.id}" aria-label="Borrar link">${ICO.del}</button></div>`;
 function renderLinks(){
-  const m = S.mem, q = $("#linkQ").value.trim().toLowerCase();
+  const m = S.mem, q = $("#linkQ").value.trim().toLowerCase(), el = $("#linksList");
   $("#catList").innerHTML = [...new Set(m.links.map(l => l.cat))].map(c => `<option value="${esc(c)}">`).join("");
-  const lista = m.links.filter(l => !q || (l.t + " " + l.dom + " " + l.cat).toLowerCase().includes(q));
-  if (!lista.length) { $("#linksList").innerHTML = `<div class="empty">${q ? "No encontré links con “" + esc(q) + "”." : "Todavía no hay links. Pedile a " + esc(m.config.asistente) + " noticias o que busque algo, y los links se guardan acá solos."}</div>`; return; }
-  const cats = new Map(); for (const l of lista) { if (!cats.has(l.cat)) cats.set(l.cat, []); cats.get(l.cat).push(l); }
-  const orden = [...cats.entries()].sort((a, b) => Math.max(...b[1].map(l => l.fecha < "" ? 0 : Date.parse(l.fecha))) - Math.max(...a[1].map(l => Date.parse(l.fecha))));
-  $("#linksList").innerHTML = orden.map(([cat, ls], i) => `<details class="cat"${q || i < 3 ? " open" : ""}><summary><b>${esc(cat)}</b><span class="n">${ls.length}</span><button class="del" data-delcat="${esc(cat)}" aria-label="Borrar el catálogo ${esc(cat)}">${ICO.del}</button></summary>
-    ${ls.slice().reverse().map(l => `<div class="lk"><a href="${esc(l.u)}" target="_blank" rel="noopener"><b>${esc(l.t)}</b><small>${l.dom && l.dom !== l.t ? esc(l.dom) + " · " : ""}Guardado ${esc(cuando(l.fecha))}</small></a>${l.dom && /vertexaisearch/.test(l.u) ? `<a class="home" href="https://${esc(l.dom)}" target="_blank" rel="noopener">sitio</a>` : ""}<button class="del" data-dellink="${l.id}" aria-label="Borrar link">${ICO.del}</button></div>`).join("")}</details>`).join("");
+  if (!m.links.length) { el.innerHTML = `<div class="empty">Todavía no hay links. Pedile a ${esc(m.config.asistente)} noticias o que busque algo, y los links se guardan acá solos.</div>`; return; }
+  // búsqueda: lista directa de links
+  if (q) {
+    const ls = m.links.filter(l => (l.t + " " + l.dom + " " + l.cat).toLowerCase().includes(q));
+    el.innerHTML = ls.length ? `<div class="cat">${ls.slice().reverse().map(linkHTML).join("")}</div>` : `<div class="empty">No encontré links con “${esc(q)}”.</div>`; return;
+  }
+  const cats = new Map(); for (const l of m.links) { if (!cats.has(l.cat)) cats.set(l.cat, []); cats.get(l.cat).push(l); }
+  // un catálogo abierto
+  if (S.linkCat && cats.has(S.linkCat)) {
+    const ls = cats.get(S.linkCat);
+    el.innerHTML = `<button class="back" data-catback="1">‹ Todos los catálogos</button>
+      <div class="cathead"><h2>${esc(S.linkCat)}</h2><button class="btn alt" data-catren="1" style="min-height:44px;padding:.4rem .8rem">Cambiar nombre</button><button class="del" data-delcat="${esc(S.linkCat)}" aria-label="Borrar el catálogo ${esc(S.linkCat)}">${ICO.del}</button></div>
+      <form class="form" id="catRenForm" hidden><div class="crow"><input class="in" id="catRenIn" value="${esc(S.linkCat)}"><button class="btn" type="submit">Guardar</button></div></form>
+      <div class="cat">${ls.slice().reverse().map(linkHTML).join("")}</div>`;
+    return;
+  }
+  S.linkCat = null;
+  const orden = [...cats.entries()].sort((a, b) => (a[0] === "Varios") - (b[0] === "Varios") || Math.max(...b[1].map(l => Date.parse(l.fecha) || 0)) - Math.max(...a[1].map(l => Date.parse(l.fecha) || 0)));
+  const sinOrden = (cats.get("Varios") || []).length + (cats.get("Búsquedas") || []).length;
+  el.innerHTML = `<div class="cats">${orden.map(([cat, ls]) => `<button class="catcard" data-cat="${esc(cat)}"><span class="ic">${esc(cat.trim().charAt(0).toUpperCase())}</span><b>${esc(cat)}</b><small>${ls.length} ${ls.length === 1 ? "link" : "links"} · ${esc([...new Set(ls.map(l => l.dom).filter(Boolean))].slice(0, 3).join(", "))}</small></button>`).join("")}</div>
+    ${sinOrden && conectado() ? `<button class="btn alt" id="ordenarBtn">Ordenar con IA los links sin catálogo (${sinOrden})</button>` : ""}`;
 }
 
 /* ================= historial ================= */
@@ -1427,8 +1501,12 @@ document.addEventListener("click", e => {
   if (d.delpers) return borrar("delpers", () => m.personas = m.personas.filter(x => x.id !== d.delpers));
   if (d.delrec) return borrar("delrec", () => m.recuerdos = m.recuerdos.filter(x => x.id !== d.delrec));
   if (d.delcond !== undefined) { m.salud.condiciones.splice(Number(d.delcond), 1); saveMem(); return; }
+  if (d.cat !== undefined && t.classList.contains("catcard")) { S.linkCat = d.cat; renderLinks(); $("#main").scrollTop = 0; return; }
+  if (d.catback) { S.linkCat = null; renderLinks(); return; }
+  if (d.catren) { const fm = $("#catRenForm"); fm.hidden = !fm.hidden; if (!fm.hidden) $("#catRenIn").focus(); return; }
+  if (t.id === "ordenarBtn") { ordenarVarios(); return; }
   if (d.dellink) { m.links = m.links.filter(x => x.id !== d.dellink); saveMem(); return; }
-  if (d.delcat) { e.preventDefault(); return borrar("delcat", () => m.links = m.links.filter(x => x.cat !== d.delcat)); }
+  if (d.delcat) { return borrar("delcat", () => { m.links = m.links.filter(x => x.cat !== d.delcat); S.linkCat = null; }); }
   if (d.lugar !== undefined) { const L = (S.lugaresRes || [])[Number(d.lugar)]; if (L) elegirLugar(L); return; }
   if (t.id === "wxChip") { abrirClima(); return; }
   if (d.delpref) return borrar("delpref", () => m.preferencias = m.preferencias.filter(x => x.id !== d.delpref));
@@ -1454,6 +1532,9 @@ document.addEventListener("submit", e => {
   if (f.id === "docForm") { if (!v("docN") && !v("docE")) return; m.salud.medicos.push({id:nid(), nombre:v("docN"), especialidad:v("docE"), tel:v("docT"), lugar:v("docL")}); f.reset(); saveMem(); return; }
   if (f.id === "condForm") { if (!v("condIn")) return; m.salud.condiciones.push(v("condIn")); f.reset(); saveMem(); return; }
   if (f.id === "persForm") { if (!v("persN")) return; m.personas.push({id:nid(), nombre:v("persN"), relacion:v("persR"), tel:v("persT"), nota:""}); f.reset(); saveMem(); return; }
+  if (f.id === "catRenForm") { const nv = v("catRenIn").slice(0, 40), viejo = S.linkCat; if (!nv || !viejo) return;
+    const ex = [...new Set(m.links.map(l => l.cat))].find(c => c.toLowerCase() === nv.toLowerCase() && c !== viejo);
+    m.links.forEach(l => { if (l.cat === viejo) l.cat = ex || nv; }); S.linkCat = ex || nv; saveMem(); toast(ex ? "Lo junté con “" + ex + "”." : "Nombre cambiado."); return; }
   if (f.id === "linkForm") { let u = v("linkU"); if (!u) return; if (!/^https?:\/\//.test(u)) u = "https://" + u; const cat = guardarLinks([{ u, t:v("linkT") || "" }], v("linkC") || "Varios"); f.reset(); saveMem(); toast(cat ? "Guardado en “" + cat + "”." : "Ese link ya estaba guardado."); return; }
   if (f.id === "wxForm") { const q = v("wxQ"); if (!q) return; $("#wxRes").innerHTML = `<div class="note">Buscando…</div>`;
     buscarLugares(q).then(rs => { S.lugaresRes = rs; $("#wxRes").innerHTML = rs.length ? rs.map((L, i) => `<button data-lugar="${i}"><b>${esc(L.nombre)}</b><small>${esc(L.detalle)}</small></button>`).join("") : `<div class="note">No encontré “${esc(q)}”. Probá con otro nombre.</div>`; }).catch(() => { $("#wxRes").innerHTML = `<div class="note">No pude buscar. Revisá internet.</div>`; }); return; }
