@@ -264,7 +264,7 @@ select.in{appearance:auto}
         <div class="nums">
           <a class="num urg" href="tel:107"><b>107</b><span>Emergencias médicas (SAME)</span></a>
           <a class="num urg" href="tel:911"><b>911</b><span>Policía y emergencias</span></a>
-          <a class="num" href="tel:138"><b>138</b><span>PAMI escucha y responde</span></a>
+          <a class="num" href="tel:138" id="numPami" hidden><b>138</b><span>PAMI escucha y responde</span></a>
           <a class="num" href="tel:100"><b>100</b><span>Bomberos</span></a>
         </div>
         <div class="note">Si te sentís muy mal (dolor de pecho, falta de aire, la cara se tuerce, mucha confusión), llamá al 107 o al 911 enseguida.</div>
@@ -282,7 +282,7 @@ select.in{appearance:auto}
       <div class="sec"><h2>Para tener en cuenta</h2><div class="sub">Problemas de salud, alergias, cosas que el médico dijo.</div><div class="chips2" id="condList"></div>
         <form class="form" id="condForm"><div class="crow"><input class="in" id="condIn" placeholder="Ej.: presión alta, alergia a la penicilina"><button class="btn" type="submit">Sumar</button></div></form>
       </div>
-      <div class="sec"><h2>Obra social</h2><input class="in" id="obraIn" placeholder="Ej.: PAMI, número de afiliado…"></div>
+      <div class="sec"><h2>Obra social</h2><input class="in" id="obraIn" placeholder="Ej.: obra social o prepaga, número de afiliado…"></div>
     </section>
 
     <!-- RECUERDOS -->
@@ -745,7 +745,7 @@ function reglas(conWeb){
   const quien = S.mem.perfil.apodo || S.mem.perfil.nombre || "";
   const ahora = new Date();
   const web = conWeb
-    ? `- Podés BUSCAR EN INTERNET. Usalo cuando pida algo actual o del mundo real: noticias del día (resumí 3 a 5 de medios argentinos confiables, en palabras simples, sin alarmar), médicos o especialistas cerca de ${S.mem.perfil.ciudad || "donde vive"} (con dirección y teléfono si aparecen, y aclarando que conviene confirmar llamando; si tiene PAMI, mencioná la cartilla de PAMI), técnicos o servicios (plomero, gasista, cerrajero), farmacias de turno, trámites (ANSES, PAMI), resultados deportivos, feriados. Nombrá de dónde sacaste el dato. No inventes teléfonos ni direcciones.
+    ? `- Podés BUSCAR EN INTERNET. Usalo cuando pida algo actual o del mundo real: noticias del día (resumí 3 a 5 de medios argentinos confiables, en palabras simples, sin alarmar), médicos o especialistas cerca de ${S.mem.perfil.ciudad || "donde vive"} (con dirección y teléfono si aparecen, y aclarando que conviene confirmar llamando; ${usaPami() ? "si tiene PAMI, mencioná la cartilla de PAMI" : "si tiene obra social o prepaga, sugerí revisar su cartilla"}), técnicos o servicios (plomero, gasista, cerrajero), farmacias de turno, trámites (${usaPami() ? "ANSES, PAMI" : "ANSES, ARCA, Registro Civil"}), resultados deportivos, feriados. Nombrá de dónde sacaste el dato. No inventes teléfonos ni direcciones.
 - No podés llamar por teléfono ni sacar turnos por la persona: decile a quién llamar, qué decir y qué llevar (DNI, credencial, estudios), y ofrecé anotarlo.`
     : `- Ahora no podés buscar en internet. Si pide noticias o datos actuales, decilo con naturalidad y ofrecé que te pegue el texto o te mande una foto del diario. Para médicos o técnicos, decí qué especialista conviene, a quién llamar, qué decir y qué llevar, y ofrecé anotarlo como pendiente.`;
   return `Sos ${n}, la asistente personal de inteligencia artificial de ${quien || "esta persona"}${quien ? " (así le gusta que le digan)" : ""}. Hablás en español rioplatense, con voseo, cálida, respetuosa y paciente, como alguien de confianza que sabe mucho. Hoy es ${fechaLarga(hoy())} de ${ahora.getFullYear()} (${hoy()}), son las ${hhmm(ahora)}.${S.wx ? " Clima: " + climaTxt() : ""}
@@ -985,7 +985,11 @@ function renderAgenda(){
   const bd = $("#agBadge"); bd.hidden = !n; bd.textContent = n;
 }
 const telHTML = t => t ? `Tel. <a href="tel:${esc(String(t).replace(/[^\d+]/g, ""))}">${esc(t)}</a>` : "";
+// PAMI solo para quien tiene 70 años o más, o dice que tiene PAMI
+const usaPami = () => Number(S.mem.perfil.edad) >= 70 || /pami/i.test(S.mem.perfil.obra_social || "");
 function renderSalud(){
+  $("#numPami").hidden = !usaPami();
+  $("#obraIn").placeholder = usaPami() ? "Ej.: PAMI, número de afiliado…" : "Ej.: OSDE, Swiss Medical, número de afiliado…";
   const s = S.mem.salud;
   $("#medsList").innerHTML = s.medicamentos.length ? `<div class="sec">${s.medicamentos.map(x => `<div class="item"><div class="tx"><b>${esc(x.nombre)}</b>${x.dosis ? " " + esc(x.dosis) : ""}<small>${esc(x.horario || "")}</small></div><button class="del" data-delmed="${x.id}" aria-label="Quitar remedio">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Sin remedios anotados.</div>`;
   $("#docsList").innerHTML = s.medicos.length ? `<div class="sec">${s.medicos.map(x => `<div class="item"><div class="tx"><b>${esc(x.nombre || x.especialidad)}</b>${x.nombre && x.especialidad ? " · " + esc(x.especialidad) : ""}<small>${telHTML(x.tel)}${x.lugar ? " · " + esc(x.lugar) : ""}</small></div><button class="del" data-deldoc="${x.id}" aria-label="Quitar médico">${ICO.del}</button></div>`).join("")}</div>` : `<div class="empty">Sin médicos anotados. Pedile a ${esc(S.mem.config.asistente)} “buscame un cardiólogo cerca” y guardá el que te guste.</div>`;
@@ -1244,7 +1248,7 @@ $("#nav").addEventListener("click", e => { const b = e.target.closest("button[da
 $("#sendBtn").onclick = () => { if (S.busy) { S.ctl?.abort(); return; } enviar($("#box").value); };
 $("#box").addEventListener("input", autosize);
 $("#box").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(pointer:fine)").matches) { e.preventDefault(); enviar($("#box").value); } });
-function setLupa(on){ S.lupa = on; const b = $("#lupaBtn"); b.setAttribute("aria-pressed", on ? "true" : "false"); $("#box").placeholder = on ? "¿Qué querés buscar? (ej.: farmacia de turno, cardiólogo PAMI)" : "Escribí acá…"; if (on) $("#box").focus(); }
+function setLupa(on){ S.lupa = on; const b = $("#lupaBtn"); b.setAttribute("aria-pressed", on ? "true" : "false"); $("#box").placeholder = on ? "¿Qué querés buscar? (ej.: farmacia de turno, " + (usaPami() ? "cardiólogo PAMI" : "cardiólogo cerca") + ")" : "Escribí acá…"; if (on) $("#box").focus(); }
 $("#lupaBtn").onclick = () => setLupa(!S.lupa);
 $("#photoBtn").onclick = () => $("#photoIn").click();
 $("#photoIn").onchange = async e => { const f = e.target.files?.[0]; e.target.value = ""; if (!f) return;
