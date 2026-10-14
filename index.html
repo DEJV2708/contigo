@@ -56,7 +56,7 @@ main{overflow-y:auto;overflow-x:hidden;min-height:0}
 .tab{padding:1rem 16px 1.5rem;display:none;flex-direction:column;gap:1rem}
 .tab.on{display:flex}
 #tab-charlar{padding:0;min-height:100%}
-nav.bottom{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:var(--surface);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.bottom{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--surface);padding-bottom:env(safe-area-inset-bottom,0px)}
 nav.bottom button{border:0;background:none;padding:.55rem .2rem .5rem;display:flex;flex-direction:column;align-items:center;gap:.15rem;font-size:.78rem;font-weight:700;color:var(--muted);min-height:66px}
 nav.bottom button svg{width:30px;height:30px}
 nav.bottom button[aria-current="true"]{color:var(--accent)}
@@ -204,6 +204,42 @@ select.in{appearance:auto}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:.6rem 1.1rem;border-radius:99px;font-weight:700;z-index:30;max-width:calc(100% - 32px);text-align:center}
 .code{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:1.25rem;font-weight:700;letter-spacing:.08em;user-select:all;text-align:center;background:var(--surface2);border-radius:12px;padding:.6rem;overflow-wrap:anywhere}
 #qr img,#qr canvas{background:#fff;padding:8px;border-radius:10px}
+.wxchip{display:flex;align-items:center;gap:.3rem;border:1.5px solid var(--line);background:var(--surface);border-radius:14px;height:52px;padding:0 .55rem 0 .4rem;flex:none;font-variant-numeric:tabular-nums}
+.wxchip svg{width:32px;height:32px}
+.wxchip .mm{display:flex;flex-direction:column;align-items:flex-start;line-height:1.1}
+.wxchip .mm b{font-size:.95rem}
+.wxchip .mm span{font-size:.78rem;color:var(--muted)}
+.wxchip .lbl{font-size:.8rem;font-weight:700}
+@media (max-width:430px){#sizeBtn{display:none}.hello h1{font-size:1.15rem}}
+.wxhead{display:flex;align-items:center;gap:.6rem}
+.wxhead h2{flex:1;min-width:0}
+.wxnow{display:flex;align-items:center;gap:1rem;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:1rem}
+.wxnow svg{width:76px;height:76px;flex:none}
+.wxnow .t{font-family:var(--f-disp);font-size:3rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.wxnow small{display:block;color:var(--muted);font-size:.85rem;margin-top:.2rem}
+.wxdays{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:.3rem .9rem}
+.wxd{display:grid;grid-template-columns:5.2rem 2.2rem 2.8rem 2.3rem 1fr 2.3rem;align-items:center;gap:.45rem;padding:.5rem 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.wxd:last-child{border-bottom:0}
+.wxd svg{width:32px;height:32px}
+.wxd .llu{font-size:.78rem;color:var(--accent);font-weight:700}
+.wxd .mn{color:var(--muted);text-align:right}
+.wxd .mx{font-weight:700}
+.wxd .bar{height:8px;border-radius:99px;background:var(--surface2);position:relative}
+.wxd .bar i{position:absolute;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--sun))}
+@media (max-width:420px){.wxd{grid-template-columns:4.4rem 2rem 2.4rem 2.1rem 1fr 2.1rem;gap:.3rem;font-size:.9rem}}
+.lugares{display:flex;flex-direction:column;gap:.4rem}
+.lugares button{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:.55rem .8rem;min-height:48px}
+.lugares button small{display:block;color:var(--muted);font-size:.8rem}
+.cat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cat summary{display:flex;align-items:center;gap:.6rem;padding:.7rem .9rem;cursor:pointer;list-style:none;min-height:56px}
+.cat summary::-webkit-details-marker{display:none}
+.cat summary b{flex:1;min-width:0;font-family:var(--f-disp);font-size:1.05rem}
+.cat summary .n{font-size:.8rem;color:var(--muted);font-weight:700;background:var(--surface2);border-radius:99px;padding:.05rem .55rem}
+.cat .lk{display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-top:1px solid var(--line)}
+.cat .lk a{flex:1;min-width:0;text-decoration:none;color:var(--fg)}
+.cat .lk a b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat .lk a small{display:block;color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cat .lk .home{font-size:.78rem;flex:none}
 .banner{margin:0 16px;border-radius:14px;padding:.6rem .9rem;background:var(--sun-soft);color:var(--fg);font-size:.9rem;display:flex;gap:.6rem;align-items:center}
 .banner button{border:0;background:var(--accent);color:var(--accent-fg);border-radius:10px;padding:.4rem .8rem;font-weight:700;margin-left:auto}
 </style>
@@ -215,6 +251,7 @@ select.in{appearance:auto}
       <h1 id="hola">Hola</h1>
       <div class="date" id="hoyTxt"></div>
     </div>
+    <button class="wxchip" id="wxChip" aria-label="Ver el clima"></button>
     <button class="iconbtn" id="sizeBtn" aria-label="Cambiar tamaño de letra" title="Tamaño de letra">A<span style="font-size:.7em">A</span></button>
     <button class="iconbtn" id="cfgBtn" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
@@ -316,6 +353,16 @@ select.in{appearance:auto}
         <div id="famOut"></div>
       </div>
     </section>
+    <!-- LINKS -->
+    <section class="tab" id="tab-links">
+      <div class="sec"><h2>Mis links</h2><div class="sub">Se guardan solos los links que aparecen en las charlas, ordenados por tema. Podés borrar un link o un catálogo entero.</div>
+        <input class="in" id="linkQ" placeholder="Buscar en mis links">
+      </div>
+      <div class="sec" id="linksList"></div>
+      <details class="more"><summary>Guardar un link a mano</summary>
+        <form class="form" id="linkForm"><input class="in" id="linkU" placeholder="Pegá el link (https://…)" inputmode="url"><div class="row"><input class="in" id="linkT" placeholder="Nombre (opcional)"><input class="in" id="linkC" placeholder="Catálogo (ej.: Recetas)" list="catList"></div><datalist id="catList"></datalist><button class="btn" type="submit">Guardar link</button></form>
+      </details>
+    </section>
   </main>
 
   <nav class="bottom" id="nav">
@@ -323,6 +370,7 @@ select.in{appearance:auto}
     <button data-tab="agenda"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span>Agenda<span class="badge" id="agBadge" hidden></span></span></button>
     <button data-tab="salud"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span>Salud</button>
     <button data-tab="memoria"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5V21h16"/></svg></span>Recuerdos</button>
+    <button data-tab="links"><span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>Links</button>
   </nav>
 </div>
 
@@ -369,6 +417,20 @@ select.in{appearance:auto}
     <div class="row" style="display:flex;gap:.5rem"><button class="btn alt" id="conClose" style="flex:1">Cerrar</button></div>
   </div>
 </div>
+<!-- Clima extendido -->
+<div class="sheet" id="wxSheet" hidden>
+  <div class="panel" role="dialog" aria-label="Clima">
+    <div class="wxhead"><h2 id="wxTitle">Clima</h2><button class="iconbtn" id="wxClose" aria-label="Cerrar">✕</button></div>
+    <div id="wxBody"></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:.5rem">
+      <span class="l">Ubicación del clima</span>
+      <div id="wxLugarNow" class="note"></div>
+      <form class="form" id="wxForm"><div class="crow"><input class="in" id="wxQ" placeholder="Escribí una ciudad (ej.: Córdoba)"><button class="btn" type="submit">Buscar</button></div></form>
+      <div class="lugares" id="wxRes"></div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn alt" id="wxGeo" style="flex:1">Usar mi ubicación actual</button><button class="btn alt" id="wxReset" style="flex:1" hidden>Volver a mi ciudad</button></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -412,7 +474,7 @@ const LS = {
 };
 const defMem = () => ({
   perfil:{nombre:"",apodo:"",ciudad:"",edad:"",vive_con:"",obra_social:""},
-  personas:[], intereses:[], recuerdos:[], preferencias:[],
+  personas:[], intereses:[], recuerdos:[], preferencias:[], links:[],
   salud:{condiciones:[], medicamentos:[], medicos:[]},
   citas:[], pendientes:[],
   config:{asistente:"Clara", voz:false, rate:0.95, buscar:true, autoEnviar:true, motor:"auto"}
@@ -423,7 +485,7 @@ function normMem(m){
   out.perfil = Object.assign(defMem().perfil, m.perfil || {});
   out.salud = Object.assign(defMem().salud, m.salud || {});
   out.config = Object.assign(defMem().config, m.config || {});
-  for (const k of ["personas","intereses","recuerdos","preferencias","citas","pendientes"]) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ["personas","intereses","recuerdos","preferencias","links","citas","pendientes"]) if (!Array.isArray(out[k])) out[k] = [];
   for (const k of ["condiciones","medicamentos","medicos"]) if (!Array.isArray(out.salud[k])) out.salud[k] = [];
   return out;
 }
@@ -695,23 +757,74 @@ function dictar(){
 
 /* ================= clima (Open-Meteo, sin clave) ================= */
 const WX = {0:"despejado",1:"casi despejado",2:"algo nublado",3:"nublado",45:"con niebla",48:"con niebla",51:"llovizna",53:"llovizna",55:"llovizna fuerte",61:"lluvia débil",63:"lluvia",65:"lluvia fuerte",66:"lluvia helada",67:"lluvia helada",71:"nieve débil",73:"nieve",75:"nieve fuerte",80:"chaparrones",81:"chaparrones",82:"chaparrones fuertes",85:"nevadas",86:"nevadas",95:"tormenta",96:"tormenta con granizo",99:"tormenta con granizo"};
-async function cargarClima(){
-  const ciudad = (S.mem.perfil.ciudad || "").trim(); if (!ciudad) { S.wx = null; return; }
-  const c = LS.get("clima");
-  if (c && c.ciudad === ciudad && Date.now() - c.ts < 3600e3) { S.wx = c; return; }
-  try {
-    let geo = c && c.ciudad === ciudad ? c.geo : null;
-    if (!geo) { const g = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=5&language=es&name=" + encodeURIComponent(ciudad));
-      const r = (g.results || []).find(x => x.country_code === "AR") || (g.results || [])[0]; if (!r) { S.wx = null; return; }
-      geo = { lat:r.latitude, lon:r.longitude, nombre:r.name }; }
-    const f = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=2`);
-    S.wx = { ciudad, geo, ts:Date.now(), t:Math.round(f.current.temperature_2m), code:f.current.weather_code,
-      max:Math.round(f.daily.temperature_2m_max[0]), min:Math.round(f.daily.temperature_2m_min[0]), llu:f.daily.precipitation_probability_max[0],
-      man:{ max:Math.round(f.daily.temperature_2m_max[1]), min:Math.round(f.daily.temperature_2m_min[1]), llu:f.daily.precipitation_probability_max[1], code:f.daily.weather_code[1] } };
-    LS.set("clima", S.wx);
-  } catch (e) { console.warn("clima", e); }
+async function buscarLugares(q){
+  const g = await getJSON("https://geocoding-api.open-meteo.com/v1/search?count=8&language=es&name=" + encodeURIComponent(q));
+  return (g.results || []).sort((a,b) => (b.country_code === "AR") - (a.country_code === "AR"))
+    .map(r => ({ nombre:r.name, detalle:[r.admin1, r.country].filter(Boolean).join(", "), lat:r.latitude, lon:r.longitude }));
 }
-const climaTxt = () => S.wx ? `En ${S.wx.geo.nombre} ahora hay ${S.wx.t}°, ${WX[S.wx.code] || ""}; hoy máxima ${S.wx.max}° y mínima ${S.wx.min}°, probabilidad de lluvia ${S.wx.llu ?? "?"}%. Mañana: ${WX[S.wx.man.code] || ""}, máxima ${S.wx.man.max}°, mínima ${S.wx.man.min}°, lluvia ${S.wx.man.llu ?? "?"}%.` : "";
+async function lugarClima(){
+  const L = S.mem.config.climaLugar; if (L && L.lat != null) return L;
+  const ciudad = (S.mem.perfil.ciudad || "").trim(); if (!ciudad) return null;
+  const c = LS.get("climaGeo"); if (c && c.ciudad === ciudad) return c.lugar;
+  const r = (await buscarLugares(ciudad))[0]; if (!r) return null;
+  LS.set("climaGeo", { ciudad, lugar:r }); return r;
+}
+async function cargarClima(force){
+  try {
+    const L = await lugarClima();
+    if (!L) S.wx = null;
+    else {
+      const c = LS.get("clima");
+      if (!force && c && c.dias && c.lugar && c.lugar.lat === L.lat && c.lugar.lon === L.lon && Date.now() - c.ts < 3600e3) S.wx = c;
+      else {
+        const f = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${L.lat}&longitude=${L.lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=7`);
+        const d = f.daily;
+        S.wx = { lugar:L, ts:Date.now(),
+          cur:{ t:Math.round(f.current.temperature_2m), st:Math.round(f.current.apparent_temperature), hum:f.current.relative_humidity_2m, viento:Math.round(f.current.wind_speed_10m), code:f.current.weather_code },
+          dias:d.time.map((t, i) => ({ f:t, code:d.weather_code[i], max:Math.round(d.temperature_2m_max[i]), min:Math.round(d.temperature_2m_min[i]), llu:d.precipitation_probability_max[i] })) };
+        LS.set("clima", S.wx);
+      }
+    }
+  } catch (e) { console.warn("clima", e); }
+  renderHeader(); if (!$("#wxSheet").hidden) renderClima();
+}
+const climaTxt = () => { if (!S.wx || !S.wx.dias) return ""; const h = S.wx.dias[0], m = S.wx.dias[1];
+  return `En ${S.wx.lugar.nombre} ahora hay ${S.wx.cur.t}° (sensación ${S.wx.cur.st}°), ${WX[S.wx.cur.code] || ""}; hoy máxima ${h.max}° y mínima ${h.min}°, lluvia ${h.llu ?? "?"}%.` + (m ? ` Mañana: ${WX[m.code] || ""}, máxima ${m.max}°, mínima ${m.min}°, lluvia ${m.llu ?? "?"}%.` : ""); };
+// Íconos del clima según el código de Open-Meteo
+function wxIcon(code){
+  const sol = '<circle cx="12" cy="12" r="4.2" fill="var(--sun)"/><g stroke="var(--sun)" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g>';
+  const solChico = '<circle cx="8.5" cy="8.5" r="3.3" fill="var(--sun)"/><g stroke="var(--sun)" stroke-width="1.7" stroke-linecap="round"><path d="M8.5 2v1.5M2 8.5h1.5M3.9 3.9l1 1M13.1 3.9l-1 1"/></g>';
+  const nube = (y = 0) => `<path d="M7 ${19 + y}h10.2a4 4 0 0 0 .4-7.98A5.6 5.6 0 0 0 6.7 ${10.6 + y} 4.2 4.2 0 0 0 7 ${19 + y}z" fill="var(--surface2)" stroke="var(--muted)" stroke-width="1.6" stroke-linejoin="round"/>`;
+  const c = Number(code); let body;
+  if (c <= 1) body = sol;
+  else if (c === 2) body = solChico + nube(1);
+  else if (c === 3) body = nube(-1);
+  else if (c === 45 || c === 48) body = nube(-3) + '<g stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"><path d="M5 19h14M7 22h10"/></g>';
+  else if (c >= 95) body = nube(-3) + '<path d="M12.5 15.5 10 19.5h3l-2 3.5" fill="none" stroke="var(--sun)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  else if ((c >= 71 && c <= 77) || c === 85 || c === 86) body = nube(-3) + '<g fill="var(--accent)"><circle cx="8" cy="20" r="1.2"/><circle cx="12" cy="22" r="1.2"/><circle cx="16" cy="20" r="1.2"/></g>';
+  else body = nube(-3) + '<g stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M8 18.5l-1 3M12 18.5l-1 3M16 18.5l-1 3"/></g>';
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
+}
+const DIA_CORTO = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+function renderClima(){
+  const w = S.wx, L = S.mem.config.climaLugar;
+  $("#wxReset").hidden = !(L && S.mem.perfil.ciudad);
+  if (!w || !w.dias) { $("#wxTitle").textContent = "Clima"; $("#wxBody").innerHTML = `<div class="empty">Elegí una ciudad abajo para ver el clima.</div>`; $("#wxLugarNow").textContent = ""; return; }
+  $("#wxTitle").textContent = "Clima en " + w.lugar.nombre;
+  $("#wxLugarNow").textContent = "Ahora: " + w.lugar.nombre + (w.lugar.detalle ? " (" + w.lugar.detalle + ")" : "") + (L ? "" : " · tu ciudad");
+  const lo = Math.min(...w.dias.map(d => d.min)), hi = Math.max(...w.dias.map(d => d.max)), span = Math.max(1, hi - lo);
+  $("#wxBody").innerHTML = `<div class="wxnow">${wxIcon(w.cur.code)}<div><div class="t">${w.cur.t}°</div><b>${esc((WX[w.cur.code] || "").replace(/^./, c => c.toUpperCase()))}</b><small>Sensación ${w.cur.st}° · Humedad ${w.cur.hum}% · Viento ${w.cur.viento} km/h</small></div></div>
+    <div class="wxdays">${w.dias.map((d, i) => { const dt = parseISO(d.f); const nom = i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIA_CORTO[dt.getDay()] + " " + dt.getDate();
+      return `<div class="wxd"><b>${nom}</b>${wxIcon(d.code)}<span class="llu">${d.llu != null && d.llu >= 10 ? d.llu + "%" : ""}</span><span class="mn">${d.min}°</span><span class="bar"><i style="left:${((d.min - lo) / span * 100).toFixed(0)}%;right:${((hi - d.max) / span * 100).toFixed(0)}%"></i></span><span class="mx">${d.max}°</span></div>`; }).join("")}</div>
+    <div class="note">Pronóstico de Open-Meteo. El % es la probabilidad de lluvia.</div>`;
+}
+function abrirClima(){ $("#wxRes").innerHTML = ""; $("#wxQ").value = ""; renderClima(); $("#wxSheet").hidden = false; cargarClima(); }
+async function elegirLugar(L){
+  S.mem.config.climaLugar = L; S.wx = null; saveMem(); $("#wxRes").innerHTML = ""; $("#wxQ").value = "";
+  $("#wxBody").innerHTML = `<div class="empty">Cargando el clima de ${esc(L.nombre)}…</div>`;
+  await cargarClima(true); toast("Clima de " + L.nombre);
+}
+
 
 /* ================= texto de la IA a HTML ================= */
 function md(t){
@@ -734,7 +847,7 @@ function memParaIA(){
   const m = S.mem;
   return JSON.stringify({
     perfil:m.perfil, personas:m.personas.map(p => ({nombre:p.nombre, relacion:p.relacion, tel:p.tel, nota:p.nota})),
-    intereses:m.intereses, recuerdos:m.recuerdos.slice(-60).map(r => r.texto), busquedas_recientes:(m.busquedas || []).slice(-15),
+    intereses:m.intereses, recuerdos:m.recuerdos.slice(-60).map(r => r.texto), busquedas_recientes:(m.busquedas || []).slice(-15), catalogos_de_links:[...new Set(m.links.map(l => l.cat))],
     salud:{condiciones:m.salud.condiciones, medicamentos:m.salud.medicamentos.map(x => ({id:x.id, nombre:x.nombre, dosis:x.dosis, horario:x.horario})), medicos:m.salud.medicos.map(x => ({nombre:x.nombre, especialidad:x.especialidad, tel:x.tel, lugar:x.lugar}))},
     citas_proximas:m.citas.filter(c => !c.hecha && diasHasta(c.fecha) >= -1).map(c => ({id:c.id, titulo:c.titulo, fecha:c.fecha, hora:c.hora, lugar:c.lugar, nota:c.nota})),
     pendientes:m.pendientes.filter(p => p.estado !== "hecho").map(p => ({id:p.id, texto:p.texto, tipo:p.tipo, desde:p.creado}))
@@ -776,6 +889,7 @@ AL FINAL de cada respuesta escribí en una línea aparte ${MARK} y después un a
 {"op":"persona","nombre":"Laura","relacion":"hija","tel":"...","nota":"vive en Córdoba"}
 {"op":"interes","texto":"jardinería"}
 {"op":"recuerdo","texto":"Le gusta el café sin azúcar; su perro se llama Toby"}
+{"op":"catalogo","nombre":"Diarios"}  (si tu respuesta trae links o resultados de internet, o la persona comparte un link: en qué catálogo guardarlos. Nombre corto de 1 a 4 palabras por tema, ej.: Diarios, Compras Día de la Madre, Médicos, Recetas, Trámites. Si encaja en uno de catalogos_de_links, usá ese mismo nombre)
 {"op":"preferencia","texto":"Cuando le paso noticias, incluir siempre los links"}  (cómo le gusta que le respondas: guardala cuando te corrija, se queje, o diga que algo le gustó o no; frases cortas y concretas)
 {"op":"medicamento","nombre":"Enalapril","dosis":"10 mg","horario":"mañana y noche"}   {"op":"medicamento_quitar","id":"..."}
 {"op":"medico","nombre":"Dra. Gómez","especialidad":"clínica","tel":"...","lugar":"..."}  (también los que encuentres buscando y la persona quiera guardar)
@@ -803,6 +917,7 @@ function aplicar(ops){
           if (p) { for (const k of ["relacion","tel","nota"]) if (s(o[k])) p[k] = s(o[k]); } else m.personas.push({id:nid(), nombre:s(o.nombre), relacion:s(o.relacion), tel:s(o.tel), nota:s(o.nota)});
           notas.push("Guardé a " + s(o.nombre)); break; }
         case "interes": { const t = s(o.texto); if (t && !m.intereses.some(x => x.toLowerCase() === t.toLowerCase())) { m.intereses.push(t); notas.push("Te gusta: " + t); } break; }
+        case "catalogo": { const t = s(o.nombre).slice(0, 40); if (t) S.catPend = t; break; }
         case "preferencia": { const t = s(o.texto); if (t && !m.preferencias.some(x => x.texto.toLowerCase() === t.toLowerCase())) { m.preferencias.push({id:nid(), texto:t, fecha:hoy()}); notas.push("Aprendido: " + t); } break; }
         case "recuerdo": { const t = s(o.texto); if (t) { m.recuerdos.push({id:nid(), texto:t, fecha:hoy()}); notas.push("Me lo guardo"); } break; }
         case "medicamento": { if (!s(o.nombre)) break; const x = m.salud.medicamentos.find(y => y.nombre.toLowerCase() === s(o.nombre).toLowerCase());
@@ -861,7 +976,6 @@ function renderWelcome(){
   } else if (!conectado()) {
     h += `<div class="card sun"><h2>Falta un paso</h2><p>Para que pueda responderte hay que conectar una inteligencia artificial. Se hace una sola vez, en dos minutos. Hay opciones gratis.</p><button class="btn" data-con="1">Conectar ahora</button></div>`;
   }
-  if (S.wx) h += `<div class="card"><div class="wx"><div class="t">${S.wx.t}°</div><div class="d"><b>${esc(S.wx.geo.nombre)}: ${esc(WX[S.wx.code] || "")}</b><span>Hoy máx. ${S.wx.max}° · mín. ${S.wx.min}°${S.wx.llu != null ? " · lluvia " + S.wx.llu + "%" : ""}<br>Mañana ${esc(WX[S.wx.man.code] || "")}, máx. ${S.wx.man.max}°</span></div></div></div>`;
   const prox = m.citas.filter(c => !c.hecha && c.fecha && diasHasta(c.fecha) >= 0).sort((a,b) => (a.fecha + a.hora) < (b.fecha + b.hora) ? -1 : 1)[0];
   if (prox) h += `<div class="card"><h2>Tu próximo turno</h2><div class="nextcita">${calHTML(prox.fecha)}<div><b>${esc(prox.titulo)}</b><div class="note">${esc(cuando(prox.fecha))}${prox.hora ? " a las " + esc(prox.hora) : ""}${prox.lugar ? " · " + esc(prox.lugar) : ""}</div></div></div></div>`;
   if (S.sug?.items?.length) h += `<div class="card"><h2>Ideas para hoy</h2><div class="sug">${S.sug.items.map((s,i) => `<button class="sugbtn" data-sug="${i}"><span class="k"></span><div><b>${esc(s.titulo)}</b><span>${esc(s.texto)}</span></div></button>`).join("")}</div></div>`;
@@ -929,7 +1043,11 @@ Priorizá sitios argentinos y de ${S.mem.perfil.ciudad || "su zona"} si correspo
     }
     ai.t = visible(r.text) || ((r.fuentes || []).length ? "Encontré esto. Tocá un link para abrirlo:" : "No me salió la respuesta. ¿Me lo pedís de otra forma?");
     ai.fuentes = r.fuentes;
+    S.catPend = null;
     ai.notas = aplicar(parseOps(r.text));
+    const nuevos = [...(ai.fuentes || []), ...(ai.t.match(URL_RX) || []).map(u => ({ u })), ...(texto.match(URL_RX) || []).map(u => ({ u }))];
+    if (nuevos.length) { const cat = guardarLinks(nuevos, S.catPend || (modoBuscar ? "Búsquedas" : "Varios")); if (cat) { ai.notas.push("Links guardados en “" + cat + "”"); } }
+    S.catPend = null;
     ai.ts = Date.now();
     if (ai.notas.length) saveMem();
     if (S.mem.config.voz) hablar(ai.t);
@@ -1006,11 +1124,41 @@ function renderMemoria(){
   renderHist();
 }
 function renderHeader(){
+  const ch = $("#wxChip"), w = S.wx;
+  if (w && w.dias) { ch.innerHTML = wxIcon(w.cur.code) + `<span class="mm"><b>${w.dias[0].max}°</b><span>${w.dias[0].min}°</span></span>`; ch.setAttribute("aria-label", `Clima: ${w.cur.t} grados, máxima ${w.dias[0].max}, mínima ${w.dias[0].min}. Tocá para ver el pronóstico`); }
+  else ch.innerHTML = wxIcon(2) + `<span class="lbl">Clima</span>`;
   const n = S.mem.perfil.apodo || S.mem.perfil.nombre;
   $("#hola").textContent = saludo() + (n ? ", " + n : "");
   const d = new Date(); $("#hoyTxt").textContent = DIAS[d.getDay()].replace(/^./, c => c.toUpperCase()) + " " + d.getDate() + " de " + MESES[d.getMonth()] + " de " + d.getFullYear();
 }
-function renderAll(){ renderHeader(); renderChat(); renderAgenda(); renderSalud(); renderMemoria(); }
+function renderAll(){ renderHeader(); renderChat(); renderAgenda(); renderSalud(); renderMemoria(); renderLinks(); }
+
+/* ================= links guardados ================= */
+function dominioDe(u, t){ const tt = String(t || ""); if (/^[\w-]+(\.[\w-]+)+$/.test(tt)) return tt.replace(/^www\./, "");
+  try { const h = new URL(u).hostname.replace(/^www\./, ""); return /vertexaisearch|googleusercontent/.test(h) ? "" : h; } catch { return ""; } }
+function guardarLinks(lista, cat){
+  const m = S.mem; let n = 0; cat = (cat || "Varios").trim().slice(0, 40);
+  const existente = m.links.map(l => l.cat).find(c => c.toLowerCase() === cat.toLowerCase()); if (existente) cat = existente;
+  for (const x of lista) {
+    const u = String(x.u || "").trim(); if (!/^https?:\/\//.test(u)) continue;
+    const dom = dominioDe(u, x.t);
+    if (m.links.some(l => l.u === u || (dom && l.dom === dom && l.cat === cat && l.t === (x.t || dom)))) continue;
+    m.links.push({ id:nid(), u, t:String(x.t || dom || u).slice(0, 140), dom, cat, fecha:hoy() }); n++;
+  }
+  if (m.links.length > 600) m.links = m.links.slice(-600);
+  return n ? cat : "";
+}
+const URL_RX = /https?:\/\/[^\s<>()"']+[^\s<>()"'.,;:!?]/g;
+function renderLinks(){
+  const m = S.mem, q = $("#linkQ").value.trim().toLowerCase();
+  $("#catList").innerHTML = [...new Set(m.links.map(l => l.cat))].map(c => `<option value="${esc(c)}">`).join("");
+  const lista = m.links.filter(l => !q || (l.t + " " + l.dom + " " + l.cat).toLowerCase().includes(q));
+  if (!lista.length) { $("#linksList").innerHTML = `<div class="empty">${q ? "No encontré links con “" + esc(q) + "”." : "Todavía no hay links. Pedile a " + esc(m.config.asistente) + " noticias o que busque algo, y los links se guardan acá solos."}</div>`; return; }
+  const cats = new Map(); for (const l of lista) { if (!cats.has(l.cat)) cats.set(l.cat, []); cats.get(l.cat).push(l); }
+  const orden = [...cats.entries()].sort((a, b) => Math.max(...b[1].map(l => l.fecha < "" ? 0 : Date.parse(l.fecha))) - Math.max(...a[1].map(l => Date.parse(l.fecha))));
+  $("#linksList").innerHTML = orden.map(([cat, ls], i) => `<details class="cat"${q || i < 3 ? " open" : ""}><summary><b>${esc(cat)}</b><span class="n">${ls.length}</span><button class="del" data-delcat="${esc(cat)}" aria-label="Borrar el catálogo ${esc(cat)}">${ICO.del}</button></summary>
+    ${ls.slice().reverse().map(l => `<div class="lk"><a href="${esc(l.u)}" target="_blank" rel="noopener"><b>${esc(l.t)}</b><small>${l.dom && l.dom !== l.t ? esc(l.dom) + " · " : ""}Guardado ${esc(cuando(l.fecha))}</small></a>${l.dom && /vertexaisearch/.test(l.u) ? `<a class="home" href="https://${esc(l.dom)}" target="_blank" rel="noopener">sitio</a>` : ""}<button class="del" data-dellink="${l.id}" aria-label="Borrar link">${ICO.del}</button></div>`).join("")}</details>`).join("");
+}
 
 /* ================= historial ================= */
 function renderHist(dia){
@@ -1277,6 +1425,10 @@ document.addEventListener("click", e => {
   if (d.delpers) return borrar("delpers", () => m.personas = m.personas.filter(x => x.id !== d.delpers));
   if (d.delrec) return borrar("delrec", () => m.recuerdos = m.recuerdos.filter(x => x.id !== d.delrec));
   if (d.delcond !== undefined) { m.salud.condiciones.splice(Number(d.delcond), 1); saveMem(); return; }
+  if (d.dellink) { m.links = m.links.filter(x => x.id !== d.dellink); saveMem(); return; }
+  if (d.delcat) { e.preventDefault(); return borrar("delcat", () => m.links = m.links.filter(x => x.cat !== d.delcat)); }
+  if (d.lugar !== undefined) { const L = (S.lugaresRes || [])[Number(d.lugar)]; if (L) elegirLugar(L); return; }
+  if (t.id === "wxChip") { abrirClima(); return; }
   if (d.delpref) return borrar("delpref", () => m.preferencias = m.preferencias.filter(x => x.id !== d.delpref));
   if (d.meh !== undefined) { const b = $("#box"); b.value = "No me sirvió tu respuesta porque "; autosize(); b.focus(); try { b.setSelectionRange(b.value.length, b.value.length); } catch {} toast("Contame qué faltó y lo aprendo."); return; }
   if (d.delint !== undefined) { m.intereses.splice(Number(d.delint), 1); saveMem(); return; }
@@ -1300,6 +1452,9 @@ document.addEventListener("submit", e => {
   if (f.id === "docForm") { if (!v("docN") && !v("docE")) return; m.salud.medicos.push({id:nid(), nombre:v("docN"), especialidad:v("docE"), tel:v("docT"), lugar:v("docL")}); f.reset(); saveMem(); return; }
   if (f.id === "condForm") { if (!v("condIn")) return; m.salud.condiciones.push(v("condIn")); f.reset(); saveMem(); return; }
   if (f.id === "persForm") { if (!v("persN")) return; m.personas.push({id:nid(), nombre:v("persN"), relacion:v("persR"), tel:v("persT"), nota:""}); f.reset(); saveMem(); return; }
+  if (f.id === "linkForm") { let u = v("linkU"); if (!u) return; if (!/^https?:\/\//.test(u)) u = "https://" + u; const cat = guardarLinks([{ u, t:v("linkT") || "" }], v("linkC") || "Varios"); f.reset(); saveMem(); toast(cat ? "Guardado en “" + cat + "”." : "Ese link ya estaba guardado."); return; }
+  if (f.id === "wxForm") { const q = v("wxQ"); if (!q) return; $("#wxRes").innerHTML = `<div class="note">Buscando…</div>`;
+    buscarLugares(q).then(rs => { S.lugaresRes = rs; $("#wxRes").innerHTML = rs.length ? rs.map((L, i) => `<button data-lugar="${i}"><b>${esc(L.nombre)}</b><small>${esc(L.detalle)}</small></button>`).join("") : `<div class="note">No encontré “${esc(q)}”. Probá con otro nombre.</div>`; }).catch(() => { $("#wxRes").innerHTML = `<div class="note">No pude buscar. Revisá internet.</div>`; }); return; }
   if (f.id === "prefForm") { if (!v("prefIn")) return; m.preferencias.push({id:nid(), texto:v("prefIn"), fecha:hoy()}); f.reset(); saveMem(); toast("Aprendido."); return; }
   if (f.id === "intForm") { if (!v("intIn")) return; m.intereses.push(v("intIn")); f.reset(); saveMem(); return; }
 });
@@ -1307,6 +1462,16 @@ let pt;
 [["pNombre","nombre"],["pApodo","apodo"],["pCiudad","ciudad"],["pEdad","edad"],["pVive","vive_con"],["obraIn","obra_social"]].forEach(([id, k]) =>
   $("#" + id).addEventListener("input", e => { S.mem.perfil[k] = e.target.value.trim(); renderHeader(); clearTimeout(pt); pt = setTimeout(() => { guardarMem(); if (k === "ciudad") cargarClima().then(renderWelcome); }, 900); }));
 $("#histQ").addEventListener("input", () => renderHist());
+$("#linkQ").addEventListener("input", renderLinks);
+$("#wxClose").onclick = () => { $("#wxSheet").hidden = true; };
+$("#wxSheet").addEventListener("click", e => { if (e.target.id === "wxSheet") $("#wxSheet").hidden = true; });
+$("#wxReset").onclick = () => { delete S.mem.config.climaLugar; S.wx = null; saveMem(); cargarClima(true); };
+$("#wxGeo").onclick = () => {
+  if (!navigator.geolocation) { toast("Este equipo no puede dar la ubicación."); return; }
+  toast("Buscando tu ubicación…");
+  navigator.geolocation.getCurrentPosition(p => elegirLugar({ nombre:"Mi ubicación", detalle:"", lat:+p.coords.latitude.toFixed(3), lon:+p.coords.longitude.toFixed(3) }),
+    () => toast("No pude saber dónde estás. Escribí la ciudad."), { timeout:15000, maximumAge:600000 });
+};
 $("#famBtn").onclick = resumenFamilia;
 
 const SIZES = ["s","m","l"];
